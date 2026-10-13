@@ -1,0 +1,873 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/eniyigena/ML-Teaching-/blob/main/Deep%20Metric%20Learning\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "OgxKwqWkBfC1",
+        "outputId": "75f5e78c-278d-4181-b484-ea2934f00cff"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Drive already mounted at /content/drive; to attempt to forcibly remount, call drive.mount(\"/content/drive\", force_remount=True).\n"
+          ]
+        }
+      ],
+      "source": [
+        "from google.colab import drive\n",
+        "drive.mount('/content/drive')"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "jR2RijfkBcPQ",
+        "outputId": "e2b10084-5a6e-4b9c-e87a-55f5797f94c3"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "cpu\n"
+          ]
+        }
+      ],
+      "source": [
+        "# IMPORTS, DO NOT MODIFY\n",
+        "\n",
+        "import os\n",
+        "import numpy as np\n",
+        "from PIL import Image\n",
+        "\n",
+        "import torch\n",
+        "import torchvision\n",
+        "import torch.nn as nn\n",
+        "import torch.nn.functional as F\n",
+        "from torch.utils.data import Dataset, DataLoader\n",
+        "from torch.utils.data.sampler import BatchSampler\n",
+        "\n",
+        "import matplotlib.pyplot as plt\n",
+        "from sklearn import metrics\n",
+        "\n",
+        "# Allows for CUDA and Mac Acceleration (It is recommended to use a hardware accelerator, use Colab for one available online)\n",
+        "device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')\n",
+        "print(device)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "OCYZ6P1OBcPa"
+      },
+      "source": [
+        "# Dataloader\n",
+        "For this part, we will start by building a custom dataloaders that inherts from the `ImageFolder` object from `torchvision`. Since the training process for the two different loss functions treated in the problem take in different input modes (a pair of images for contrastive loss, a triplet of images for triplet loss), you are asked to use two different dataloaders.\n",
+        "\n",
+        "`PairLoader`is completed for you already; it forms pairs of two images in the dataset, which can be from the same dog or different dogs. During training, the `__getitem__` function is called and it returns an anchor image, a comparison image, and a value indicating whether they are from the same dog (1 for yes, 0 for no).\n",
+        "\n",
+        "You are tasked to complete `TripletLoader`, which should load triplets, that is, three images where the first image is the anchor image, the second is a positive case (i.e., from the same dog), and the third is a negative case (i.e. from a different dog)."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "eqUzuYdgBcPd"
+      },
+      "outputs": [],
+      "source": [
+        "# NO NEED TO MODIFY THIS BLOCK\n",
+        "class PairLoader(torchvision.datasets.ImageFolder):\n",
+        "    def __init__(\n",
+        "            self,\n",
+        "            root: str,\n",
+        "            transform = None,\n",
+        "            target_transform = None,\n",
+        "            is_valid_file = None,\n",
+        "    ):\n",
+        "        super(PairLoader, self).__init__(root=root,\n",
+        "                                               transform=transform,\n",
+        "                                               target_transform=target_transform,\n",
+        "                                               is_valid_file=is_valid_file)\n",
+        "        self.pairs = self.get_pairs()\n",
+        "\n",
+        "    def get_pairs(self):\n",
+        "        pairs = []\n",
+        "        labels = list(self.class_to_idx.values())\n",
+        "        targets = np.array(self.targets)\n",
+        "        pos = [np.argwhere(targets == labels[i])[[0, -1]] for i in range(len(labels))]\n",
+        "        neg = [np.argwhere(targets != labels[i])[[0, -1]] for i in range(len(labels))]\n",
+        "        for i in range(len(labels)):\n",
+        "            i_a, i_p = np.random.choice(np.arange(pos[i][0], pos[i][1]+1), 2, replace=False)\n",
+        "            i_n = np.random.choice(np.arange(neg[i][0], neg[i][1]+1), 1)[0]\n",
+        "            pairs.extend([[i_a, i_p, 1], [i_a, i_n, 0]])\n",
+        "        return np.array(pairs)\n",
+        "\n",
+        "    def __len__(self):\n",
+        "            return self.pairs.shape[0]\n",
+        "\n",
+        "    def __getitem__(self, index):\n",
+        "        i = self.pairs[index]\n",
+        "        a, a_target = self.samples[i[0]]\n",
+        "        c, c_target = self.samples[i[1]]\n",
+        "        img_a = self.loader(a)\n",
+        "        img_c = self.loader(c)\n",
+        "\n",
+        "        if self.transform is not None:\n",
+        "            img_a = self.transform(img_a)\n",
+        "            img_c = self.transform(img_c)\n",
+        "\n",
+        "        return img_a, img_c, i[2]"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "mhLPdKneBcPl"
+      },
+      "outputs": [],
+      "source": [
+        "# COMPLETE THIS BLOCK; YOU MAY MODIFY THIS CLASS HOWEVER YOU SEE FIT, AS LONG AS YOU KEEP THE NAME TripletLoader\n",
+        "class TripletLoader(torchvision.datasets.ImageFolder):\n",
+        "    def __init__(\n",
+        "            self,\n",
+        "            root: str,\n",
+        "            transform = None,\n",
+        "            target_transform = None,\n",
+        "            is_valid_file = None,\n",
+        "    ):\n",
+        "        super(TripletLoader, self).__init__(root=root,\n",
+        "                                               transform=transform,\n",
+        "                                               target_transform=target_transform,\n",
+        "                                               is_valid_file=is_valid_file)\n",
+        "        self.triplets = self.generate_triplets()\n",
+        "\n",
+        "    def generate_triplets(self):\n",
+        "        triplets = []\n",
+        "        labels = list(self.class_to_idx.values())\n",
+        "        for label in labels:\n",
+        "            class_indices = np.where(np.array(self.targets) == label)[0]\n",
+        "            for anchor_index in class_indices:\n",
+        "                positive_indices = np.setdiff1d(class_indices, [anchor_index])\n",
+        "                positive_index = np.random.choice(positive_indices)\n",
+        "\n",
+        "                negative_label = np.random.choice(np.setdiff1d(labels, [label]))\n",
+        "                negative_indices = np.where(np.array(self.targets) == negative_label)[0]\n",
+        "                negative_index = np.random.choice(negative_indices)\n",
+        "\n",
+        "                triplets.append([anchor_index, positive_index, negative_index])\n",
+        "\n",
+        "        return np.array(triplets)\n",
+        "\n",
+        "        # # YOU MAY WANT TO DEFINE AND THEN CALL A FUNCTION THAT GENERATES RANDOM TRIPLETS\n",
+        "        # # Get labels\n",
+        "        # labels = list(self.class_to_idx.values())\n",
+        "\n",
+        "        # # Create index lists for positive and negative examples\n",
+        "        # targets = np.array(self.targets)\n",
+        "        # pos_indices = [np.argwhere(targets == l) for l in labels]\n",
+        "        # neg_indices = [np.argwhere(targets != l) for l in labels]\n",
+        "\n",
+        "        # # Generate triplets of (anchor, positive, negative)\n",
+        "        # triplets = []\n",
+        "        # for i, label in enumerate(labels):\n",
+        "        #     pos_idx = np.random.choice(pos_indices[i][0], 2, replace=True)\n",
+        "        #     neg_idx = np.random.choice(neg_indices[i][0], 1)[0]\n",
+        "        #     triplets.append([pos_idx[0], pos_idx[1], neg_idx])\n",
+        "        # self.triplets = triplets\n",
+        "\n",
+        "    def __len__(self):\n",
+        "      return len(self.triplets)\n",
+        "        # YOU WILL NEED TO DEFINE THE \"LENGTH\" OF THE DATASET HERE\n",
+        "    def __getitem__(self, index):\n",
+        "        a_index, p_index, n_index = self.triplets[index]\n",
+        "\n",
+        "        a_path, _ = self.samples[a_index]\n",
+        "        p_path, _ = self.samples[p_index]\n",
+        "        n_path, _ = self.samples[n_index]\n",
+        "\n",
+        "        a_img = self.loader(a_path)\n",
+        "        p_img = self.loader(p_path)\n",
+        "        n_img = self.loader(n_path)\n",
+        "\n",
+        "        if self.transform is not None:\n",
+        "            a_img = self.transform(a_img)\n",
+        "            p_img = self.transform(p_img)\n",
+        "            n_img = self.transform(n_img)\n",
+        "\n",
+        "        return a_img, p_img, n_img\n",
+        "        # THIS IS THE LOGIC FOR RETRIEVING ONE TRIPLET"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "O0C-YREbBcPm"
+      },
+      "source": [
+        "# Model\n",
+        "In this part, you are tasked with designing a model. Given the task involves images, start by implementing a two-layer CNN plus a final linear layer and try improving the model from there. The images are 160x160 pixels, with 3 colour channels.\n",
+        "\n",
+        "For upgrade ideas, try making a deeper CNN or implementing elements of ResNet. You only need to submit your best model design. Keep in mind that more complex models will take longer to train.\n",
+        "\n",
+        "For submission to the autograder, copy the code in the block below to the file `model.py`."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "53o4lW0OBcPo"
+      },
+      "outputs": [],
+      "source": [
+        "# DO NOT RENAME CLASS\n",
+        "class DogModel(nn.Module):\n",
+        "    # PLEASE DEFINE MODEL ARCHITECTURE HYPERPARAMETERS WITHIN THIS CLASS\n",
+        "    def __init__(self):\n",
+        "        super(DogModel, self).__init__()\n",
+        "        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, padding=1)\n",
+        "        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)\n",
+        "        self.pool = nn.MaxPool2d(2, 2)\n",
+        "        self.fc = nn.Linear(32 * 40 * 40, 128)\n",
+        "\n",
+        "    def forward(self, x, evalMode=False):\n",
+        "        x = self.pool(F.relu(self.conv1(x)))\n",
+        "        x = self.pool(F.relu(self.conv2(x)))\n",
+        "        x = x.view(-1, 32 * 40 * 40)\n",
+        "        x = self.fc(x)\n",
+        "\n",
+        "        return x"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "XDdISpIGBcPq"
+      },
+      "source": [
+        "# Custom Loss Function\n",
+        "`ContrastiveLoss` is completed for you already. You are tasked to complete `TripletLoss`, which should work with the `TripletLoader`class you made earlier."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "xc4fYtQcBcPr"
+      },
+      "outputs": [],
+      "source": [
+        "# NO NEED TO MODIFY THIS BLOCK\n",
+        "class ContrastiveLoss(nn.Module):\n",
+        "    def __init__(self):\n",
+        "        super(ContrastiveLoss, self).__init__()\n",
+        "        self.margin = 0.2\n",
+        "        self.distance = nn.CosineSimilarity()\n",
+        "\n",
+        "    def forward(self, anchor, compare, identical):\n",
+        "        d = self.distance(anchor, compare)\n",
+        "        loss =  d * identical + (1 - identical) * (d - self.margin)\n",
+        "        return loss.mean()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "kGp13PqLBcPt"
+      },
+      "outputs": [],
+      "source": [
+        "class TripletLoss(nn.Module):\n",
+        "    def __init__(self, margin=1.0):\n",
+        "        super().__init__()\n",
+        "        self.margin = margin\n",
+        "\n",
+        "    def forward(self, anchor, positive, negative):\n",
+        "        distance_positive = (anchor - positive).pow(2).sum(1)\n",
+        "        distance_negative = (anchor - negative).pow(2).sum(1)\n",
+        "        losses = F.relu(distance_positive - distance_negative + self.margin)\n",
+        "\n",
+        "        return losses.mean()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "30Gh2Swd5pD0",
+        "outputId": "f07b6794-d7f1-44ce-c9b4-5439b60f45df"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "<ipython-input-22-b2a07d736402>:23: DeprecationWarning: Conversion of an array with ndim > 0 to a scalar is deprecated, and will error in future. Ensure you extract a single element from your array before performing this operation. (Deprecated NumPy 1.25.)\n",
+            "  i_a, i_p = np.random.choice(np.arange(pos[i][0], pos[i][1]+1), 2, replace=False)\n",
+            "<ipython-input-22-b2a07d736402>:24: DeprecationWarning: Conversion of an array with ndim > 0 to a scalar is deprecated, and will error in future. Ensure you extract a single element from your array before performing this operation. (Deprecated NumPy 1.25.)\n",
+            "  i_n = np.random.choice(np.arange(neg[i][0], neg[i][1]+1), 1)[0]\n"
+          ]
+        }
+      ],
+      "source": [
+        "# INITIALIZING DATA LOADERS, YOU MAY MODIFY THIS BLOCK AS YOU SEE FIT\n",
+        "train_dataset_p = PairLoader(root='/content/drive/MyDrive/HW7/train',\n",
+        "                                   transform=torchvision.transforms.ToTensor())\n",
+        "train_dataloader_p = torch.utils.data.DataLoader(train_dataset_p, batch_size=64,\n",
+        "                                               shuffle=True, num_workers=0)\n",
+        "\n",
+        "train_dataset_t = TripletLoader(root='/content/drive/MyDrive/HW7/train',\n",
+        "                                   transform=torchvision.transforms.ToTensor())\n",
+        "train_dataloader_t = torch.utils.data.DataLoader(train_dataset_t, batch_size=64,\n",
+        "                                               shuffle=True, num_workers=0)\n",
+        "\n",
+        "dev_dataset = PairLoader(root='/content/drive/MyDrive/HW7/validation',\n",
+        "                                               transform=torchvision.transforms.ToTensor())\n",
+        "dev_dataloader = torch.utils.data.DataLoader(dev_dataset, batch_size=64,\n",
+        "                                             shuffle=True, num_workers=0)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "kHgSvTJaBcPt"
+      },
+      "source": [
+        "# Training Loop\n",
+        "You will need to write your own training loop and validation process"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "L2fcanMtbhp_"
+      },
+      "outputs": [],
+      "source": [
+        "def validate(model, test_loader, criterion, device):\n",
+        "    model.eval()\n",
+        "    val_loss = 0\n",
+        "\n",
+        "    with torch.no_grad():\n",
+        "        for anchor, positive, negative in test_loader:\n",
+        "            anchor = anchor.to(device)\n",
+        "            positive = positive.to(device)\n",
+        "            negative = negative.to(device)\n",
+        "\n",
+        "            anchor_out = model(anchor)\n",
+        "            positive_out = model(positive)\n",
+        "            negative_out = model(negative)\n",
+        "\n",
+        "            loss = test_criterion(anchor_out, positive_out, negative_out)\n",
+        "            val_loss += loss.item()\n",
+        "    val_loss /= len(test_loader)\n",
+        "    model.train()\n",
+        "    return val_loss"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "VGflPiNnBcPx",
+        "outputId": "a2a63fb8-0f54-4c5f-9550-61b5e146827e"
+      },
+      "outputs": [
+        {
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "<ipython-input-4-b2a07d736402>:23: DeprecationWarning: Conversion of an array with ndim > 0 to a scalar is deprecated, and will error in future. Ensure you extract a single element from your array before performing this operation. (Deprecated NumPy 1.25.)\n",
+            "  i_a, i_p = np.random.choice(np.arange(pos[i][0], pos[i][1]+1), 2, replace=False)\n",
+            "<ipython-input-4-b2a07d736402>:24: DeprecationWarning: Conversion of an array with ndim > 0 to a scalar is deprecated, and will error in future. Ensure you extract a single element from your array before performing this operation. (Deprecated NumPy 1.25.)\n",
+            "  i_n = np.random.choice(np.arange(neg[i][0], neg[i][1]+1), 1)[0]\n"
+          ]
+        }
+      ],
+      "source": [
+        "# INITIALIZING DATA LOADERS, YOU MAY MODIFY THIS BLOCK AS YOU SEE FIT\n",
+        "train_dataset_p = PairLoader(root='/content/drive/MyDrive/HW7/train',\n",
+        "                                   transform=torchvision.transforms.ToTensor())\n",
+        "train_dataloader_p = torch.utils.data.DataLoader(train_dataset_p, batch_size=64,\n",
+        "                                               shuffle=True, num_workers=0)\n",
+        "\n",
+        "train_dataset_t = TripletLoader(root='/content/drive/MyDrive/HW7/train',\n",
+        "                                   transform=torchvision.transforms.ToTensor())\n",
+        "train_dataloader_t = torch.utils.data.DataLoader(train_dataset_t, batch_size=64,\n",
+        "                                               shuffle=True, num_workers=0)\n",
+        "\n",
+        "dev_dataset = PairLoader(root='/content/drive/MyDrive/HW7/validation',\n",
+        "                                               transform=torchvision.transforms.ToTensor())\n",
+        "dev_dataloader = torch.utils.data.DataLoader(dev_dataset, batch_size=64,\n",
+        "                                             shuffle=True, num_workers=0)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "Jo8yEdXER0U7"
+      },
+      "outputs": [],
+      "source": [
+        "def train(model, data_loader, test_loader, criterion, optimizer, n_epochs=1, scheduler=None):\n",
+        "    model.train()\n",
+        "\n",
+        "    for epoch in range(n_epochs):\n",
+        "        epoch_loss = 0\n",
+        "        for anchor, positive, negative in data_loader:\n",
+        "            anchor = anchor.to(device)\n",
+        "            positive = positive.to(device)\n",
+        "            negative = negative.to(device)\n",
+        "\n",
+        "            optimizer.zero_grad()\n",
+        "\n",
+        "            anchor_out = model(anchor)\n",
+        "            positive_out = model(positive)\n",
+        "            negative_out = model(negative)\n",
+        "\n",
+        "            loss = criterion(anchor_out, positive_out, negative_out)\n",
+        "\n",
+        "            loss.backward()\n",
+        "            optimizer.step()\n",
+        "\n",
+        "            epoch_loss += loss.item()\n",
+        "\n",
+        "        epoch_loss /= len(data_loader)\n",
+        "\n",
+        "        if scheduler:\n",
+        "            scheduler.step()\n",
+        "\n",
+        "        val_loss = validate(model, test_loader, criterion)\n",
+        "        print(f\"Epoch {epoch+1}/{n_epochs}.. Train loss: {epoch_loss:.3f}.. Val loss: {val_loss:.3f}\")"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from torchvision import transforms\n",
+        "\n",
+        "# Initialize model, loss, optimizer, data loaders\n",
+        "model = DogModel().to(device)\n",
+        "criterion = TripletLoss()\n",
+        "optimizer = torch.optim.Adam(model.parameters())\n",
+        "scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)\n",
+        "\n",
+        "train_loader = DataLoader(TripletLoader('/content/drive/MyDrive/HW7/train', transform=transforms.ToTensor()), batch_size=64, shuffle=True)\n",
+        "val_loader = DataLoader(TripletLoader('/content/drive/MyDrive/HW7/validation', transform=transforms.ToTensor()), batch_size=64)\n",
+        "\n",
+        "# Train\n",
+        "n_epochs = 10\n",
+        "train(model, train_loader, val_loader, criterion, optimizer, n_epochs, scheduler)\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 280
+        },
+        "id": "cZ4RH1LMstFm",
+        "outputId": "ee44dbf1-c58b-4723-b72e-d984c7058f7a"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "error",
+          "ename": "TypeError",
+          "evalue": "validate() missing 1 required positional argument: 'device'",
+          "traceback": [
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mTypeError\u001b[0m                                 Traceback (most recent call last)",
+            "\u001b[0;32m<ipython-input-34-c86c461f2fb8>\u001b[0m in \u001b[0;36m<cell line: 14>\u001b[0;34m()\u001b[0m\n\u001b[1;32m     12\u001b[0m \u001b[0;31m# Train\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     13\u001b[0m \u001b[0mn_epochs\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;36m10\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 14\u001b[0;31m \u001b[0mtrain\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mmodel\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mtrain_loader\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mval_loader\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcriterion\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0moptimizer\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mn_epochs\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mscheduler\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m",
+            "\u001b[0;32m<ipython-input-29-c302f04795bd>\u001b[0m in \u001b[0;36mtrain\u001b[0;34m(model, data_loader, test_loader, criterion, optimizer, n_epochs, scheduler)\u001b[0m\n\u001b[1;32m     27\u001b[0m             \u001b[0mscheduler\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mstep\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     28\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 29\u001b[0;31m         \u001b[0mval_loss\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mvalidate\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mmodel\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mtest_loader\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcriterion\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m     30\u001b[0m         \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34mf\"Epoch {epoch+1}/{n_epochs}.. Train loss: {epoch_loss:.3f}.. Val loss: {val_loss:.3f}\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;31mTypeError\u001b[0m: validate() missing 1 required positional argument: 'device'"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "e9RoxMN1BcPz"
+      },
+      "source": [
+        "# Saving Model Weights\n",
+        "This part will be necessary to run for submission to the autograder. You may change the name of the object to match your model object."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "EDkl8zoxBcPz"
+      },
+      "outputs": [],
+      "source": [
+        "torch.save(model.state_dict(), \"weights.pt\")"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "6FE1yybdBcP0"
+      },
+      "source": [
+        "# Testing Model\n",
+        "\n",
+        "Here, you are provided a dataloader for the test set. You will need to implement a subroutine that loops through the test set and compares pairs retrieved from the loader in order to compute scores for obtaining the AUC ROC. Please use `roc_auc_score` in the `sklearn` package to compute the score and use the `sklearn` and `matplotlib` libraries to generate graphs.\n",
+        "\n",
+        "The test set is similar to the test set we use to automatically grade. Since the test sets are small, there is a chance they differ by a few percentage points; if there is a significant discrepancy, you may try running training again to have a more consistent result."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "LJNWvFsyBcP0"
+      },
+      "outputs": [],
+      "source": [
+        "# DO NOT MODIFY THIS PART\n",
+        "class TestLoader(torchvision.datasets.ImageFolder):\n",
+        "    def __init__(\n",
+        "            self,\n",
+        "            root: str,\n",
+        "            transform = None,\n",
+        "            target_transform = None,\n",
+        "            is_valid_file = None,\n",
+        "    ):\n",
+        "        super(TestLoader, self).__init__(root=root,\n",
+        "                                               transform=transform,\n",
+        "                                               target_transform=target_transform,\n",
+        "                                               is_valid_file=is_valid_file)\n",
+        "        self.pairs = self.get_pairs()\n",
+        "\n",
+        "    def get_pairs(self):\n",
+        "        pairs = []\n",
+        "        labels = list(self.class_to_idx.values())\n",
+        "        targets = np.array(self.targets)\n",
+        "        pos = [np.argwhere(targets == labels[i])[[0, -1]] for i in range(len(labels))]\n",
+        "        for i in range(len(labels)):\n",
+        "            i_a, i_p = np.random.choice(np.arange(pos[i][0], pos[i][1]+1), 2, replace=False)\n",
+        "            pairs.append([i_a, i_p, int(i >= 100)])\n",
+        "        return np.array(pairs)\n",
+        "\n",
+        "    def __len__(self):\n",
+        "            return self.pairs.shape[0]\n",
+        "\n",
+        "    def __getitem__(self, index):\n",
+        "        i = self.pairs[index]\n",
+        "        a, a_target = self.samples[i[0]]\n",
+        "        c, c_target = self.samples[i[1]]\n",
+        "        img_a = self.loader(a)\n",
+        "        img_c = self.loader(c)\n",
+        "\n",
+        "        if self.transform is not None:\n",
+        "            img_a = self.transform(img_a)\n",
+        "            img_c = self.transform(img_c)\n",
+        "\n",
+        "        return img_a, img_c, i[2]"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "5ejGM_1jBcP1"
+      },
+      "outputs": [],
+      "source": [
+        "# LOADING DATASETS\n",
+        "test_dataset = TestLoader(root='/content/drive/MyDrive/HW7/test',\n",
+        "                        transform=torchvision.transforms.ToTensor())\n",
+        "test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=64,\n",
+        "                                             shuffle=False, num_workers=0)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "XpU3VGupBcP1",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 211
+        },
+        "outputId": "ed9390c5-0f84-4e03-fdbc-b012568c80c7"
+      },
+      "outputs": [
+        {
+          "output_type": "error",
+          "ename": "NameError",
+          "evalue": "name 'test_dataloader' is not defined",
+          "traceback": [
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mNameError\u001b[0m                                 Traceback (most recent call last)",
+            "\u001b[0;32m<ipython-input-19-aa473d384a36>\u001b[0m in \u001b[0;36m<cell line: 19>\u001b[0;34m()\u001b[0m\n\u001b[1;32m     17\u001b[0m     \u001b[0;32mreturn\u001b[0m \u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0masarray\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mtruths\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0masarray\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mscores\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     18\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 19\u001b[0;31m \u001b[0mtruths\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mscores\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mverify\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mtest_dataloader\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mmodel\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m     20\u001b[0m \u001b[0mauc\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mmetrics\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mroc_auc_score\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mtruths\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mscores\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mmulti_class\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;34m\"ovr\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     21\u001b[0m \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mauc\u001b[0m\u001b[0;34m*\u001b[0m\u001b[0;36m100\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;31mNameError\u001b[0m: name 'test_dataloader' is not defined"
+          ]
+        }
+      ],
+      "source": [
+        "def verify(test_loader, model):\n",
+        "    model.eval()\n",
+        "    metric = nn.CosineSimilarity()\n",
+        "    scores = []\n",
+        "    truths = []\n",
+        "\n",
+        "    for batch_num, (image_a, image_c, labels) in enumerate(test_loader):\n",
+        "        image_a = image_a.to(device)\n",
+        "        image_c = image_c.to(device)\n",
+        "\n",
+        "        output_a = model(image_a)\n",
+        "        output_c = model(image_c)\n",
+        "\n",
+        "        score = metric(output_a, output_c).cpu()\n",
+        "        scores.extend(score.tolist())\n",
+        "        truths.extend(labels.tolist())\n",
+        "    return np.asarray(truths), np.asarray(scores)\n",
+        "\n",
+        "truths, scores = verify(test_dataloader, model)\n",
+        "auc = metrics.roc_auc_score(truths, scores, multi_class=\"ovr\")\n",
+        "print(auc*100)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "1BcPMLtcBcP1"
+      },
+      "outputs": [],
+      "source": [
+        "# OUTPUTTING ROC CURVE\n",
+        "fpr, tpr, thresholds = metrics.roc_curve(truths, scores)\n",
+        "roc_auc = metrics.auc(fpr, tpr)\n",
+        "display = metrics.RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc, estimator_name='example estimator')\n",
+        "display.plot()\n",
+        "plt.show()"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "ajcm5tyTBcP2"
+      },
+      "source": [
+        "# Clustering\n",
+        "\n",
+        "Use any clustering method to generate 5 or more clusters using the metric output of the model, and plot each cluster using a dimensionality reduction method such as PCA and t-SNE.\n",
+        "\n",
+        "You will use the validation set as dataset for clustering. Please use `matplotlib` to plot the clusters with each cluster using dots of a different colour. You may then display 5 examples of dogs in each cluster and identify a unique trait in each cluster."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "gyxQ8JgoBcP2"
+      },
+      "outputs": [],
+      "source": [
+        "# CLUSTERING CODE GOES HERE\n",
+        "from sklearn.cluster import KMeans\n",
+        "from sklearn.decomposition import PCA\n",
+        "from sklearn.manifold import TSNE\n",
+        "\n",
+        "# Step 1: Extract embeddings from the validation set\n",
+        "def extract_embeddings(dataloader, model):\n",
+        "    model.eval()\n",
+        "    embeddings = []\n",
+        "    with torch.no_grad():\n",
+        "        for data in dataloader:\n",
+        "            if len(data) == 3:\n",
+        "                images_a, images_c, _ = data\n",
+        "                images = torch.cat((images_a, images_c), dim=0)\n",
+        "            else:\n",
+        "                images, _ = data\n",
+        "            images = images.to(device)\n",
+        "            outputs = model(images)\n",
+        "            embeddings.append(outputs.cpu().numpy())\n",
+        "    return np.concatenate(embeddings)\n",
+        "\n",
+        "val_embeddings = extract_embeddings(dev_dataloader, model)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "QfcZfW8dofWT"
+      },
+      "outputs": [],
+      "source": [
+        "# Step 2: Perform clustering (e.g., K-means)\n",
+        "n_clusters = 5\n",
+        "kmeans = KMeans(n_clusters=n_clusters, random_state=42).fit(val_embeddings)\n",
+        "cluster_labels = kmeans.labels_"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "yzS-HCMgohwG"
+      },
+      "outputs": [],
+      "source": [
+        "# Step 3: Apply dimensionality reduction for visualization\n",
+        "pca = PCA(n_components=2)\n",
+        "pca_embeddings = pca.fit_transform(val_embeddings)\n",
+        "\n",
+        "tsne = TSNE(n_components=2, perplexity=30, random_state=42)\n",
+        "tsne_embeddings = tsne.fit_transform(val_embeddings)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "FoZosjKeonRN"
+      },
+      "outputs": [],
+      "source": [
+        "# Plotting the clusters\n",
+        "plt.figure(figsize=(12, 6))\n",
+        "\n",
+        "plt.subplot(1, 2, 1)\n",
+        "plt.scatter(pca_embeddings[:, 0], pca_embeddings[:, 1], c=cluster_labels, cmap='viridis')\n",
+        "plt.xlabel('PCA Component 1')\n",
+        "plt.ylabel('PCA Component 2')\n",
+        "plt.title('PCA Visualization')\n",
+        "\n",
+        "plt.subplot(1, 2, 2)\n",
+        "plt.scatter(tsne_embeddings[:, 0], tsne_embeddings[:, 1], c=cluster_labels, cmap='viridis')\n",
+        "plt.xlabel('t-SNE Component 1')\n",
+        "plt.ylabel('t-SNE Component 2')\n",
+        "plt.title('t-SNE Visualization')\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "FP2Qic8mopy5"
+      },
+      "outputs": [],
+      "source": [
+        "# Step 4: Display examples from each cluster and identify unique traits\n",
+        "def display_cluster_examples(dataloader, cluster_labels, n_examples=5):\n",
+        "    cluster_examples = [[] for _ in range(n_clusters)]\n",
+        "    example_count = [0] * n_clusters\n",
+        "\n",
+        "    for data in dataloader:\n",
+        "        if len(data) == 3:\n",
+        "            images_a, images_c, _ = data\n",
+        "            images = torch.cat((images_a, images_c), dim=0)\n",
+        "        else:\n",
+        "            images, _ = data\n",
+        "\n",
+        "        outputs = model(images.to(device))\n",
+        "\n",
+        "        for i in range(len(images)):\n",
+        "            cluster_label = cluster_labels[sum(example_count)]\n",
+        "            if example_count[cluster_label] < n_examples:\n",
+        "                cluster_examples[cluster_label].append(images[i])\n",
+        "                example_count[cluster_label] += 1\n",
+        "\n",
+        "    fig, axes = plt.subplots(n_clusters, max(example_count), figsize=(12, 12))\n",
+        "    for i in range(n_clusters):\n",
+        "        for j in range(len(cluster_examples[i])):\n",
+        "            axes[i, j].imshow(cluster_examples[i][j].permute(1, 2, 0).cpu().numpy())\n",
+        "            axes[i, j].axis('off')\n",
+        "        for j in range(len(cluster_examples[i]), max(example_count)):\n",
+        "            fig.delaxes(axes[i, j])\n",
+        "    plt.tight_layout()\n",
+        "    plt.show()\n",
+        "\n",
+        "display_cluster_examples(dev_dataloader, cluster_labels)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "yYOGV6scos5d"
+      },
+      "outputs": [],
+      "source": [
+        "from torchvision import transforms\n",
+        "\n",
+        "# Contrastive Loss\n",
+        "model_contrastive = DogModel().to(device)\n",
+        "criterion_contrastive = ContrastiveLoss()\n",
+        "optimizer_contrastive = torch.optim.Adam(model_contrastive.parameters())\n",
+        "scheduler_contrastive = torch.optim.lr_scheduler.StepLR(optimizer_contrastive, step_size=5, gamma=0.1)\n",
+        "\n",
+        "train_loader_contrastive = DataLoader(PairLoader('train', transform=transforms.ToTensor()), batch_size=64, shuffle=True)\n",
+        "\n",
+        "val_loader_contrastive = DataLoader(PairLoader('validation', transform=transforms.ToTensor()), batch_size=64)\n",
+        "\n",
+        "n_epochs = 1\n",
+        "train(model_contrastive, train_loader_contrastive, val_loader_contrastive, criterion_contrastive, optimizer_contrastive, n_epochs, scheduler_contrastive)\n",
+        "\n",
+        "truths_contrastive, scores_contrastive = verify(test_dataloader, model_contrastive)\n",
+        "auc_contrastive = metrics.roc_auc_score(truths_contrastive, scores_contrastive, multi_class=\"ovr\")\n",
+        "print(auc_contrastive * 100)\n",
+        "\n",
+        "\n",
+        "# OUTPUTTING ROC CURVE\n",
+        "fpr, tpr, thresholds = metrics.roc_curve(truths_contrastive, scores_contrastive)\n",
+        "roc_auc = metrics.auc(fpr, tpr)\n",
+        "display = metrics.RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc, estimator_name='example estimator')\n",
+        "display.plot()\n",
+        "plt.show()"
+      ]
+    }
+  ],
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "display_name": "Python 3",
+      "name": "python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0
+}
