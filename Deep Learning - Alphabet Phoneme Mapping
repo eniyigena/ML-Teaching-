@@ -1,0 +1,2057 @@
+{
+  "metadata": {
+    "kernelspec": {
+      "display_name": "Python 3",
+      "language": "python",
+      "name": "python3"
+    },
+    "language_info": {
+      "name": "python",
+      "version": "3.10.14",
+      "mimetype": "text/x-python",
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "pygments_lexer": "ipython3",
+      "nbconvert_exporter": "python",
+      "file_extension": ".py"
+    },
+    "accelerator": "GPU",
+    "colab": {
+      "collapsed_sections": [
+        "rd5aNaLVoR_g"
+      ],
+      "provenance": [],
+      "include_colab_link": true
+    },
+    "vscode": {
+      "interpreter": {
+        "hash": "bd385fe162c5ca0c84973b7dd5c518456272446b2b64e67c2a69f949ca7a1754"
+      }
+    },
+    "kaggle": {
+      "accelerator": "none",
+      "dataSources": [],
+      "dockerImageVersionId": 30787,
+      "isInternetEnabled": true,
+      "language": "python",
+      "sourceType": "notebook",
+      "isGpuEnabled": false
+    }
+  },
+  "nbformat_minor": 0,
+  "nbformat": 4,
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/eniyigena/ML-Teaching-/blob/main/Deep%20Learning%20-%20Alphabet%20Phoneme%20Mapping\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Installs"
+      ],
+      "metadata": {
+        "id": "UR4qfYrVoO4v"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "%pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchtext==0.14.1 torchaudio==0.13.1 torchdata==0.5.1 --extra-index-url https://download.pytorch.org/whl/cu117 -q"
+      ],
+      "metadata": {
+        "id": "mA9qZoIDcx-h",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:36:27.594443Z",
+          "iopub.execute_input": "2024-11-01T14:36:27.594836Z",
+          "iopub.status.idle": "2024-11-01T14:38:22.890306Z",
+          "shell.execute_reply.started": "2024-11-01T14:36:27.594797Z",
+          "shell.execute_reply": "2024-11-01T14:38:22.889246Z"
+        },
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "484dd6cb-4565-4aa8-9312-29b43b4220de"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\u001b[2K     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m1.8/1.8 GB\u001b[0m \u001b[31m939.6 kB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[2K     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m24.3/24.3 MB\u001b[0m \u001b[31m64.2 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[2K     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m4.2/4.2 MB\u001b[0m \u001b[31m71.9 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[2K   \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m2.0/2.0 MB\u001b[0m \u001b[31m27.3 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[2K   \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m4.6/4.6 MB\u001b[0m \u001b[31m83.5 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[?25h"
+          ]
+        }
+      ],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install setuptools==69.5.1"
+      ],
+      "metadata": {
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:39:24.527559Z",
+          "iopub.execute_input": "2024-11-01T14:39:24.527896Z",
+          "iopub.status.idle": "2024-11-01T14:39:35.836206Z",
+          "shell.execute_reply.started": "2024-11-01T14:39:24.527860Z",
+          "shell.execute_reply": "2024-11-01T14:39:35.835082Z"
+        },
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 321
+        },
+        "id": "5O3erSpkwtaz",
+        "outputId": "e5581fcc-49ea-4e11-f046-7cc15549989e"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Collecting setuptools==69.5.1\n",
+            "  Downloading setuptools-69.5.1-py3-none-any.whl.metadata (6.2 kB)\n",
+            "Downloading setuptools-69.5.1-py3-none-any.whl (894 kB)\n",
+            "\u001b[?25l   \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m0.0/894.6 kB\u001b[0m \u001b[31m?\u001b[0m eta \u001b[36m-:--:--\u001b[0m\r\u001b[2K   \u001b[91m━━━━━━━━━━━━━━━\u001b[0m\u001b[90m╺\u001b[0m\u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m337.9/894.6 kB\u001b[0m \u001b[31m10.6 MB/s\u001b[0m eta \u001b[36m0:00:01\u001b[0m\r\u001b[2K   \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m894.6/894.6 kB\u001b[0m \u001b[31m15.5 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[?25hInstalling collected packages: setuptools\n",
+            "  Attempting uninstall: setuptools\n",
+            "    Found existing installation: setuptools 75.1.0\n",
+            "    Uninstalling setuptools-75.1.0:\n",
+            "      Successfully uninstalled setuptools-75.1.0\n",
+            "\u001b[31mERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\n",
+            "ipython 7.34.0 requires jedi>=0.16, which is not installed.\u001b[0m\u001b[31m\n",
+            "\u001b[0mSuccessfully installed setuptools-69.5.1\n"
+          ]
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "application/vnd.colab-display-data+json": {
+              "pip_warning": {
+                "packages": [
+                  "_distutils_hack",
+                  "pkg_resources",
+                  "setuptools"
+                ]
+              },
+              "id": "4aeb4f89e5134221903956c9e48b41e4"
+            }
+          },
+          "metadata": {}
+        }
+      ],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "\n",
+        "This may take a while"
+      ],
+      "metadata": {
+        "id": "ONgAWhqdoYy-"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install torchsummaryx==1.1.0\n",
+        "!pip install wandb --quiet\n",
+        "!pip install python-Levenshtein -q\n",
+        "!git clone --recursive https://github.com/parlance/ctcdecode.git\n",
+        "!pip install wget -q\n",
+        "%cd ctcdecode\n",
+        "!pip install . -q\n",
+        "%cd .."
+      ],
+      "metadata": {
+        "id": "SS7a7xeEoaV9",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:39:35.838006Z",
+          "iopub.execute_input": "2024-11-01T14:39:35.838939Z",
+          "iopub.status.idle": "2024-11-01T14:41:51.794180Z",
+          "shell.execute_reply.started": "2024-11-01T14:39:35.838886Z",
+          "shell.execute_reply": "2024-11-01T14:41:51.793054Z"
+        },
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "d9195240-a733-438e-e2b8-cd867bbfc1c6"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Collecting torchsummaryx==1.1.0\n",
+            "  Downloading torchsummaryX-1.1.0-py3-none-any.whl.metadata (261 bytes)\n",
+            "Downloading torchsummaryX-1.1.0-py3-none-any.whl (2.9 kB)\n",
+            "Installing collected packages: torchsummaryx\n",
+            "Successfully installed torchsummaryx-1.1.0\n",
+            "\u001b[2K   \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m162.6/162.6 kB\u001b[0m \u001b[31m7.7 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[2K   \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m3.1/3.1 MB\u001b[0m \u001b[31m59.3 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[?25hCloning into 'ctcdecode'...\n",
+            "remote: Enumerating objects: 1102, done.\u001b[K\n",
+            "remote: Counting objects: 100% (39/39), done.\u001b[K\n",
+            "remote: Compressing objects: 100% (25/25), done.\u001b[K\n",
+            "remote: Total 1102 (delta 16), reused 32 (delta 14), pack-reused 1063 (from 1)\u001b[K\n",
+            "Receiving objects: 100% (1102/1102), 782.27 KiB | 14.22 MiB/s, done.\n",
+            "Resolving deltas: 100% (529/529), done.\n",
+            "Submodule 'third_party/ThreadPool' (https://github.com/progschj/ThreadPool.git) registered for path 'third_party/ThreadPool'\n",
+            "Submodule 'third_party/kenlm' (https://github.com/kpu/kenlm.git) registered for path 'third_party/kenlm'\n",
+            "Cloning into '/content/ctcdecode/third_party/ThreadPool'...\n",
+            "remote: Enumerating objects: 82, done.        \n",
+            "remote: Counting objects: 100% (26/26), done.        \n",
+            "remote: Compressing objects: 100% (9/9), done.        \n",
+            "remote: Total 82 (delta 19), reused 17 (delta 17), pack-reused 56 (from 1)        \n",
+            "Receiving objects: 100% (82/82), 13.34 KiB | 6.67 MiB/s, done.\n",
+            "Resolving deltas: 100% (36/36), done.\n",
+            "Cloning into '/content/ctcdecode/third_party/kenlm'...\n",
+            "remote: Enumerating objects: 14170, done.        \n",
+            "remote: Counting objects: 100% (483/483), done.        \n",
+            "remote: Compressing objects: 100% (337/337), done.        \n",
+            "remote: Total 14170 (delta 167), reused 410 (delta 132), pack-reused 13687 (from 1)        \n",
+            "Receiving objects: 100% (14170/14170), 5.91 MiB | 20.52 MiB/s, done.\n",
+            "Resolving deltas: 100% (8047/8047), done.\n",
+            "Submodule path 'third_party/ThreadPool': checked out '9a42ec1329f259a5f4881a291db1dcb8f2ad9040'\n",
+            "Submodule path 'third_party/kenlm': checked out '35835f1ac4884126458ac89f9bf6dd9ccad561e0'\n",
+            "  Preparing metadata (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "  Building wheel for wget (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "/content/ctcdecode\n",
+            "  Preparing metadata (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "  Building wheel for ctcdecode (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "/content\n"
+          ]
+        }
+      ],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Imports"
+      ],
+      "metadata": {
+        "id": "IWVONJxCobPc"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import torch\n",
+        "import random\n",
+        "import numpy as np\n",
+        "import torch.nn as nn\n",
+        "import torch.nn.functional as F\n",
+        "from torchsummaryX import summary\n",
+        "from torch.utils.data import Dataset, DataLoader\n",
+        "from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence\n",
+        "\n",
+        "import torchaudio.transforms as tat\n",
+        "\n",
+        "from sklearn.metrics import accuracy_score\n",
+        "import gc\n",
+        "\n",
+        "import zipfile\n",
+        "import pandas as pd\n",
+        "from tqdm import tqdm\n",
+        "import os\n",
+        "import datetime\n",
+        "\n",
+        "# imports for decoding and distance calculation\n",
+        "import ctcdecode\n",
+        "import Levenshtein\n",
+        "from ctcdecode import CTCBeamDecoder\n",
+        "\n",
+        "import warnings\n",
+        "warnings.filterwarnings('ignore')\n",
+        "\n",
+        "device = 'cuda' if torch.cuda.is_available() else 'cpu'\n",
+        "print(\"Device: \", device)"
+      ],
+      "metadata": {
+        "id": "78ZTCIXoof2f",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:41:51.797374Z",
+          "iopub.execute_input": "2024-11-01T14:41:51.797774Z",
+          "iopub.status.idle": "2024-11-01T14:41:54.656460Z",
+          "shell.execute_reply.started": "2024-11-01T14:41:51.797735Z",
+          "shell.execute_reply": "2024-11-01T14:41:54.655486Z"
+        },
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "9d6a8376-bd92-44f0-d7c6-21db9e3ed073"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Device:  cuda\n"
+          ]
+        }
+      ],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Kaggle Setup"
+      ],
+      "metadata": {
+        "id": "gg3-yJ8tok34"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install --upgrade --force-reinstall --no-deps kaggle==1.5.8 -q\n",
+        "!mkdir /root/.kaggle\n",
+        "\n",
+        "with open(\"/root/.kaggle/kaggle.json\", \"w+\") as f:\n",
+        "    f.write('{\"username\":\"ericniyigena\",\"key\":\"f3d6dfe3d3f9f09bd1663af8600294f3\"}') # TODO: Put your kaggle username & key here\n",
+        "\n",
+        "!chmod 600 /root/.kaggle/kaggle.json"
+      ],
+      "metadata": {
+        "id": "AdUelfGhom1m",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:41:54.657755Z",
+          "iopub.execute_input": "2024-11-01T14:41:54.658244Z",
+          "iopub.status.idle": "2024-11-01T14:42:00.970820Z",
+          "shell.execute_reply.started": "2024-11-01T14:41:54.658209Z",
+          "shell.execute_reply": "2024-11-01T14:42:00.969525Z"
+        },
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "d71696a0-7ca7-4cac-93a9-c74f7182094c"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\u001b[?25l     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m0.0/59.2 kB\u001b[0m \u001b[31m?\u001b[0m eta \u001b[36m-:--:--\u001b[0m\r\u001b[2K     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m59.2/59.2 kB\u001b[0m \u001b[31m3.5 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[?25h  Preparing metadata (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "  Building wheel for kaggle (setup.py) ... \u001b[?25l\u001b[?25hdone\n"
+          ]
+        }
+      ],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!kaggle competitions download -c 11-785-hw3p2-f24"
+      ],
+      "metadata": {
+        "id": "dSjBwfXeoq4B",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:00.972390Z",
+          "iopub.execute_input": "2024-11-01T14:42:00.972734Z",
+          "iopub.status.idle": "2024-11-01T14:42:03.842742Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:00.972698Z",
+          "shell.execute_reply": "2024-11-01T14:42:03.841797Z"
+        },
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "9256dc47-9cb2-475a-8905-64d9396b6bde"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Downloading 11-785-hw3p2-f24.zip to /content\n",
+            " 99% 3.95G/3.97G [00:23<00:00, 238MB/s]\n",
+            "100% 3.97G/3.97G [00:23<00:00, 179MB/s]\n"
+          ]
+        }
+      ],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# '''\n",
+        "# This will take a couple minutes, but you should see at least the following:\n",
+        "# 11-785-f24-hw3p2  ctcdecode  hw3p2asr-f24.zip  sample_data\n",
+        "# '''\n",
+        "# !unzip -q /kaggle/working/hw3p2-785-f24.zip\n",
+        "# !ls"
+      ],
+      "metadata": {
+        "id": "_ruxWP60LCQA",
+        "trusted": true
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!unzip -q /kaggle/working/11-785-hw3p2-f24.zip -d /kaggle/working/\n",
+        "!ls"
+      ],
+      "metadata": {
+        "trusted": true,
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "h7exo17ewta2",
+        "outputId": "f67c2d57-12a0-4ba3-f6ad-28e90d1b712f"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "unzip:  cannot find or open /kaggle/working/11-785-hw3p2-f24.zip, /kaggle/working/11-785-hw3p2-f24.zip.zip or /kaggle/working/11-785-hw3p2-f24.zip.ZIP.\n",
+            "11-785-hw3p2-f24.zip  ctcdecode  sample_data\n"
+          ]
+        }
+      ],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Google Drive"
+      ],
+      "metadata": {
+        "id": "R9v5ewZDMpYA"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from google.colab import drive\n",
+        "drive.mount('/content/gdrive')"
+      ],
+      "metadata": {
+        "id": "4Cp-716IMZRd",
+        "trusted": true,
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 304
+        },
+        "outputId": "a1901c86-ff3c-42dd-cc83-6545d2026e85"
+      },
+      "outputs": [
+        {
+          "output_type": "error",
+          "ename": "MessageError",
+          "evalue": "Error: credential propagation was unsuccessful",
+          "traceback": [
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mMessageError\u001b[0m                              Traceback (most recent call last)",
+            "\u001b[0;32m<ipython-input-21-4996ee3d8d09>\u001b[0m in \u001b[0;36m<cell line: 2>\u001b[0;34m()\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[0;32mfrom\u001b[0m \u001b[0mgoogle\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mcolab\u001b[0m \u001b[0;32mimport\u001b[0m \u001b[0mdrive\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 2\u001b[0;31m \u001b[0mdrive\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mmount\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m'/content/gdrive'\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/google/colab/drive.py\u001b[0m in \u001b[0;36mmount\u001b[0;34m(mountpoint, force_remount, timeout_ms, readonly)\u001b[0m\n\u001b[1;32m     98\u001b[0m \u001b[0;32mdef\u001b[0m \u001b[0mmount\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mmountpoint\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mforce_remount\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;32mFalse\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mtimeout_ms\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;36m120000\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mreadonly\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;32mFalse\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     99\u001b[0m   \u001b[0;34m\"\"\"Mount your Google Drive at the specified mountpoint path.\"\"\"\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 100\u001b[0;31m   return _mount(\n\u001b[0m\u001b[1;32m    101\u001b[0m       \u001b[0mmountpoint\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    102\u001b[0m       \u001b[0mforce_remount\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mforce_remount\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/google/colab/drive.py\u001b[0m in \u001b[0;36m_mount\u001b[0;34m(mountpoint, force_remount, timeout_ms, ephemeral, readonly)\u001b[0m\n\u001b[1;32m    135\u001b[0m   )\n\u001b[1;32m    136\u001b[0m   \u001b[0;32mif\u001b[0m \u001b[0mephemeral\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 137\u001b[0;31m     _message.blocking_request(\n\u001b[0m\u001b[1;32m    138\u001b[0m         \u001b[0;34m'request_auth'\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    139\u001b[0m         \u001b[0mrequest\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;34m{\u001b[0m\u001b[0;34m'authType'\u001b[0m\u001b[0;34m:\u001b[0m \u001b[0;34m'dfs_ephemeral'\u001b[0m\u001b[0;34m}\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/google/colab/_message.py\u001b[0m in \u001b[0;36mblocking_request\u001b[0;34m(request_type, request, timeout_sec, parent)\u001b[0m\n\u001b[1;32m    174\u001b[0m       \u001b[0mrequest_type\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mrequest\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mparent\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mparent\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mexpect_reply\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;32mTrue\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    175\u001b[0m   )\n\u001b[0;32m--> 176\u001b[0;31m   \u001b[0;32mreturn\u001b[0m \u001b[0mread_reply_from_input\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mrequest_id\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mtimeout_sec\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/google/colab/_message.py\u001b[0m in \u001b[0;36mread_reply_from_input\u001b[0;34m(message_id, timeout_sec)\u001b[0m\n\u001b[1;32m    101\u001b[0m     ):\n\u001b[1;32m    102\u001b[0m       \u001b[0;32mif\u001b[0m \u001b[0;34m'error'\u001b[0m \u001b[0;32min\u001b[0m \u001b[0mreply\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 103\u001b[0;31m         \u001b[0;32mraise\u001b[0m \u001b[0mMessageError\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mreply\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'error'\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    104\u001b[0m       \u001b[0;32mreturn\u001b[0m \u001b[0mreply\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mget\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m'data'\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;32mNone\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    105\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;31mMessageError\u001b[0m: Error: credential propagation was unsuccessful"
+          ]
+        }
+      ],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Dataset and Dataloader"
+      ],
+      "metadata": {
+        "id": "2ORNHnSFroP0"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ARPABET PHONEME MAPPING\n",
+        "# DO NOT CHANGE\n",
+        "\n",
+        "CMUdict_ARPAbet = {\n",
+        "    \"\" : \" \",\n",
+        "    \"[SIL]\": \"-\", \"NG\": \"G\", \"F\" : \"f\", \"M\" : \"m\", \"AE\": \"@\",\n",
+        "    \"R\"    : \"r\", \"UW\": \"u\", \"N\" : \"n\", \"IY\": \"i\", \"AW\": \"W\",\n",
+        "    \"V\"    : \"v\", \"UH\": \"U\", \"OW\": \"o\", \"AA\": \"a\", \"ER\": \"R\",\n",
+        "    \"HH\"   : \"h\", \"Z\" : \"z\", \"K\" : \"k\", \"CH\": \"C\", \"W\" : \"w\",\n",
+        "    \"EY\"   : \"e\", \"ZH\": \"Z\", \"T\" : \"t\", \"EH\": \"E\", \"Y\" : \"y\",\n",
+        "    \"AH\"   : \"A\", \"B\" : \"b\", \"P\" : \"p\", \"TH\": \"T\", \"DH\": \"D\",\n",
+        "    \"AO\"   : \"c\", \"G\" : \"g\", \"L\" : \"l\", \"JH\": \"j\", \"OY\": \"O\",\n",
+        "    \"SH\"   : \"S\", \"D\" : \"d\", \"AY\": \"Y\", \"S\" : \"s\", \"IH\": \"I\",\n",
+        "    \"[SOS]\": \"[SOS]\", \"[EOS]\": \"[EOS]\"\n",
+        "}\n",
+        "\n",
+        "CMUdict = list(CMUdict_ARPAbet.keys())\n",
+        "ARPAbet = list(CMUdict_ARPAbet.values())\n",
+        "\n",
+        "\n",
+        "PHONEMES = CMUdict[:-2]\n",
+        "LABELS = ARPAbet[:-2]"
+      ],
+      "metadata": {
+        "id": "k0v7wHRWrqH6",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:03.844123Z",
+          "iopub.execute_input": "2024-11-01T14:42:03.844449Z",
+          "iopub.status.idle": "2024-11-01T14:42:03.853676Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:03.844413Z",
+          "shell.execute_reply": "2024-11-01T14:42:03.852673Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# You might want to play around with the mapping as a sanity check here"
+      ],
+      "metadata": {
+        "id": "eN2kcxwXLLBb",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:03.855012Z",
+          "iopub.execute_input": "2024-11-01T14:42:03.855504Z",
+          "iopub.status.idle": "2024-11-01T14:42:03.868330Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:03.855459Z",
+          "shell.execute_reply": "2024-11-01T14:42:03.867411Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Train Data"
+      ],
+      "metadata": {
+        "id": "agmNBKf4JrLV"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import torch\n",
+        "class AudioDataset(torch.utils.data.Dataset):\n",
+        "\n",
+        "    # For this homework, we give you full flexibility to design your data set class.\n",
+        "    # Hint: The data from HW1 is very similar to this HW\n",
+        "    def __init__(self,root, partition):\n",
+        "        '''\n",
+        "        Initializes the dataset.\n",
+        "\n",
+        "        INPUTS: What inputs do you need here?\n",
+        "        '''\n",
+        "\n",
+        "        # Load the directory and all files in them\n",
+        "\n",
+        "        self.mfcc_dir = os.path.join(root, partition, \"mfcc\") #TODO\n",
+        "        self.transcript_dir = os.path.join(root, partition, \"transcript\")#TODO\n",
+        "\n",
+        "        mfcc_files = sorted(os.listdir(self.mfcc_dir))#TODO\n",
+        "        transcript_files = sorted(os.listdir(self.transcript_dir))#TODO\n",
+        "\n",
+        "        assert len(mfcc_files) == len(transcript_files)\n",
+        "        self.phonemes = PHONEMES\n",
+        "        self.mfccs, self.transcripts = [],[]\n",
+        "\n",
+        "        length = len(mfcc_files)\n",
+        "\n",
+        "        for i in range(length):\n",
+        "\n",
+        "            # load MFCC\n",
+        "            mfcc        = np.load(os.path.join(self.mfcc_dir, mfcc_files[i]))\n",
+        "            mfcc = (mfcc - np.mean(mfcc, axis=0)) / np.std(mfcc, axis=0)\n",
+        "            self.mfccs.append(mfcc)\n",
+        "\n",
+        "            # Load Transcripts\n",
+        "            transcript  =  np.load(os.path.join(self.transcript_dir, transcript_files[i]))\n",
+        "            transcript = transcript[1:-1]\n",
+        "\n",
+        "            self.transcripts.append(np.array([self.phonemes.index(p) for p in transcript]))\n",
+        "\n",
+        "\n",
+        "        self.length = len(mfcc_files)\n",
+        "        '''\n",
+        "        You may decide to do this in __getitem__ if you wish.\n",
+        "        However, doing this here will make the __init__ function take the load of\n",
+        "        loading the data, and shift it away from training.\n",
+        "        '''\n",
+        "\n",
+        "\n",
+        "    def __len__(self):\n",
+        "\n",
+        "        '''\n",
+        "        TODO: What do we return here?\n",
+        "        '''\n",
+        "        return self.length\n",
+        "\n",
+        "    def __getitem__(self, ind):\n",
+        "        '''\n",
+        "        TODO: RETURN THE MFCC COEFFICIENTS AND ITS CORRESPONDING LABELS\n",
+        "\n",
+        "        If you didn't do the loading and processing of the data in __init__,\n",
+        "        do that here.\n",
+        "\n",
+        "        Once done, return a tuple of features and labels.\n",
+        "        '''\n",
+        "        mfcc, phonemes = torch.FloatTensor(self.mfccs[ind]), torch.LongTensor(self.transcripts[ind])\n",
+        "\n",
+        "        return mfcc, phonemes\n",
+        "\n",
+        "\n",
+        "\n",
+        "    def collate_fn(self,batch):\n",
+        "        '''\n",
+        "        TODO:\n",
+        "        1.  Extract the features and labels from 'batch'\n",
+        "        2.  We will additionally need to pad both features and labels,\n",
+        "            look at pytorch's docs for pad_sequence\n",
+        "        3.  This is a good place to perform transforms, if you so wish.\n",
+        "            Performing them on batches will speed the process up a bit.\n",
+        "        4.  Return batch of features, labels, lenghts of features,\n",
+        "            and lengths of labels.\n",
+        "        '''\n",
+        "        # batch of input mfcc coefficients\n",
+        "        batch_mfcc = [item[0] for item in batch] # TODO\n",
+        "        # batch of output phonemes\n",
+        "        batch_transcript = [item[1] for item in batch] # TODO\n",
+        "\n",
+        "        # HINT: CHECK OUT -> pad_sequence (imported above)\n",
+        "        # Also be sure to check the input format (batch_first)\n",
+        "        batch_mfcc_pad = pad_sequence(batch_mfcc, batch_first=True, padding_value=0) # TODO\n",
+        "        lengths_mfcc = [mfcc.size(0) for mfcc in batch_mfcc] # TODO\n",
+        "\n",
+        "        batch_transcript_pad = pad_sequence(batch_transcript, batch_first=True, padding_value=0) # TODO\n",
+        "        lengths_transcript = [transcript.size(0) for transcript in batch_transcript] # TODO\n",
+        "\n",
+        "        # You may apply some transformation, Time and Frequency masking, here in the collate function;\n",
+        "        # Food for thought -> Why are we applying the transformation here and not in the __getitem__?\n",
+        "        #                  -> Would we apply transformation on the validation set as well?\n",
+        "        #                  -> Is the order of axes / dimensions as expected for the transform functions?\n",
+        "\n",
+        "        # Return the following values: padded features, padded labels, actual length of features, actual length of the labels\n",
+        "        return batch_mfcc_pad, batch_transcript_pad, torch.tensor(lengths_mfcc), torch.tensor(lengths_transcript)"
+      ],
+      "metadata": {
+        "id": "afd0_vlbJmr_",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:03.869802Z",
+          "iopub.execute_input": "2024-11-01T14:42:03.870519Z",
+          "iopub.status.idle": "2024-11-01T14:42:03.888841Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:03.870471Z",
+          "shell.execute_reply": "2024-11-01T14:42:03.888041Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Test Data"
+      ],
+      "metadata": {
+        "id": "hqDrxeHfJw4g"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "class AudioDatasetTest(torch.utils.data.Dataset):\n",
+        "\n",
+        "    # For this homework, we give you full flexibility to design your data set class.\n",
+        "    # Hint: The data from HW1 is very similar to this HW\n",
+        "\n",
+        "    #TODO\n",
+        "    def __init__(self, root, partition):\n",
+        "        '''\n",
+        "        Initializes the dataset.\n",
+        "\n",
+        "        INPUTS: What inputs do you need here?\n",
+        "        '''\n",
+        "\n",
+        "        # Load the directory and all files in them\n",
+        "\n",
+        "        self.mfcc_dir = os.path.join(root, partition, \"mfcc\") #TODO\n",
+        "\n",
+        "\n",
+        "        mfcc_files = sorted(os.listdir(self.mfcc_dir))#TODO\n",
+        "\n",
+        "\n",
+        "        self.mfccs = []\n",
+        "\n",
+        "        length = len(mfcc_files)\n",
+        "\n",
+        "        for i in range(length):\n",
+        "            # load MFCC\n",
+        "            mfcc        = np.load(os.path.join(self.mfcc_dir, mfcc_files[i]))\n",
+        "            mfcc = (mfcc - np.mean(mfcc, axis=0)) / np.std(mfcc, axis=0)\n",
+        "            self.mfccs.append(mfcc)\n",
+        "\n",
+        "\n",
+        "        self.length = len(mfcc_files)\n",
+        "        '''\n",
+        "        You may decide to do this in __getitem__ if you wish.\n",
+        "        However, doing this here will make the __init__ function take the load of\n",
+        "        loading the data, and shift it away from training.\n",
+        "        '''\n",
+        "\n",
+        "\n",
+        "    def __len__(self):\n",
+        "\n",
+        "        '''\n",
+        "        TODO: What do we return here?\n",
+        "        '''\n",
+        "        return self.length\n",
+        "\n",
+        "    def __getitem__(self, ind):\n",
+        "        '''\n",
+        "        TODO: RETURN THE MFCC COEFFICIENTS AND ITS CORRESPONDING LABELS\n",
+        "\n",
+        "        If you didn't do the loading and processing of the data in __init__,\n",
+        "        do that here.\n",
+        "\n",
+        "        Once done, return a tuple of features and labels.\n",
+        "        '''\n",
+        "        mfcc = torch.FloatTensor(self.mfccs[ind])\n",
+        "\n",
+        "        return mfcc\n",
+        "\n",
+        "\n",
+        "\n",
+        "    def collate_fn(self,batch):\n",
+        "        '''\n",
+        "        TODO:\n",
+        "        1.  Extract the features and labels from 'batch'\n",
+        "        2.  We will additionally need to pad both features and labels,\n",
+        "            look at pytorch's docs for pad_sequence\n",
+        "        3.  This is a good place to perform transforms, if you so wish.\n",
+        "            Performing them on batches will speed the process up a bit.\n",
+        "        4.  Return batch of features, labels, lenghts of features,\n",
+        "            and lengths of labels.\n",
+        "        '''\n",
+        "        # batch of input mfcc coefficients\n",
+        "        batch_mfcc = [item[0] for item in batch] # TODO\n",
+        "\n",
+        "\n",
+        "        # HINT: CHECK OUT -> pad_sequence (imported above)\n",
+        "        # Also be sure to check the input format (batch_first)\n",
+        "        batch_mfcc_pad = pad_sequence(batch_mfcc, batch_first=True) # TODO\n",
+        "        lengths_mfcc = [mfcc.size(0) for mfcc in batch_mfcc] # TODO\n",
+        "\n",
+        "\n",
+        "        # You may apply some transformation, Time and Frequency masking, here in the collate function;\n",
+        "        # Food for thought -> Why are we applying the transformation here and not in the __getitem__?\n",
+        "        #                  -> Would we apply transformation on the validation set as well?\n",
+        "        #                  -> Is the order of axes / dimensions as expected for the transform functions?\n",
+        "\n",
+        "        # Return the following values: padded features, padded labels, actual length of features, actual length of the labels\n",
+        "        return batch_mfcc_pad, torch.tensor(lengths_mfcc)"
+      ],
+      "metadata": {
+        "id": "HrLS1wfVJppA",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:03.892448Z",
+          "iopub.execute_input": "2024-11-01T14:42:03.892780Z",
+          "iopub.status.idle": "2024-11-01T14:42:03.904053Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:03.892747Z",
+          "shell.execute_reply": "2024-11-01T14:42:03.903246Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Config - Hyperparameters"
+      ],
+      "metadata": {
+        "id": "Pt-veYcdL6Fe"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "root = '/kaggle/working/11785-f24-hw3p2'\n",
+        "\n",
+        "# # Feel free to add more items here\n",
+        "# config = {\n",
+        "#     \"beam_width\" : 2,\n",
+        "#     \"lr\"         : 2e-3,\n",
+        "#     \"epochs\"     : 50,\n",
+        "#     \"batch_size\" : 64  # Increase if your device can handle it\n",
+        "# }\n",
+        "\n",
+        "# # You may pass this as a parameter to the dataset class above\n",
+        "# # This will help modularize your implementation\n",
+        "# transforms = [] # set of tranformations\n",
+        "\n",
+        "config = {\n",
+        "    \"beam_width\" : 2,\n",
+        "    \"lr\"         : 2e-3,\n",
+        "    \"epochs\"     : 1,\n",
+        "    \"batch_size\" : 128,\n",
+        "    'root_dir': '/kaggle/input/11-785-hw3p2-f24/11785-f24-hw3p2',\n",
+        "    'encoder dropout'   : 0.25,\n",
+        "    'decoder dropout'   : 0.15,\n",
+        "    'encoder dropout'   : 0.25,\n",
+        "    'decoder dropout'   : 0.15,\n",
+        "    'lstm dropout'      : 0.25,\n",
+        "    'factor'            : 0.5,\n",
+        "    'mode'           : 'min',\n",
+        "    'patience'          : 3,\n",
+        "    'sc_threshold'      : 1e-3,\n",
+        "    'beam_width'        : 5\n",
+        "}"
+      ],
+      "metadata": {
+        "id": "MN82c3KpLup8",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:03.905061Z",
+          "iopub.execute_input": "2024-11-01T14:42:03.905380Z",
+          "iopub.status.idle": "2024-11-01T14:42:03.917138Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:03.905349Z",
+          "shell.execute_reply": "2024-11-01T14:42:03.916306Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Data loaders"
+      ],
+      "metadata": {
+        "id": "NmuPk9J6L8dz"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# get me RAMMM!!!!\n",
+        "import gc\n",
+        "gc.collect()"
+      ],
+      "metadata": {
+        "id": "3_kG0gU2x4hH",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:03.918285Z",
+          "iopub.execute_input": "2024-11-01T14:42:03.919018Z",
+          "iopub.status.idle": "2024-11-01T14:42:04.037224Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:03.918937Z",
+          "shell.execute_reply": "2024-11-01T14:42:04.036296Z"
+        },
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "ae5d4977-7d92-4d8d-8366-e44dadee3f9f"
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "0"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 15
+        }
+      ],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Create objects for the dataset class\n",
+        "\n",
+        "import os\n",
+        "import numpy as np\n",
+        "from torch.utils.data import DataLoader\n",
+        "\n",
+        "root = '/kaggle/working/11785-f24-hw3p2'\n",
+        "train_data = AudioDataset(root=root, partition=\"train-clean-100\") #TODO\n",
+        "val_data = AudioDataset(root=root, partition=\"dev-clean\")  # TODO : You can either use the same class with some modifications or make a new one :)\n",
+        "test_data = AudioDatasetTest(root=root, partition=\"test-clean\") #TODO\n",
+        "\n",
+        "# Do NOT forget to pass in the collate function as parameter while creating the dataloader\n",
+        "train_loader = DataLoader(dataset=train_data,batch_size=config['batch_size'],shuffle=True,collate_fn=train_data.collate_fn) #TODO\n",
+        "val_loader = DataLoader(dataset=val_data,batch_size=config['batch_size'],shuffle=False,collate_fn=val_data.collate_fn) #TODO\n",
+        "test_loader = DataLoader(dataset=test_data,batch_size=config['batch_size'],shuffle=False,collate_fn=test_data.collate_fn) #TODO\n",
+        "\n",
+        "print(\"Batch size: \", config['batch_size'])\n",
+        "print(\"Train dataset samples = {}, batches = {}\".format(train_data.__len__(), len(train_loader)))\n",
+        "print(\"Val dataset samples = {}, batches = {}\".format(val_data.__len__(), len(val_loader)))\n",
+        "print(\"Test dataset samples = {}, batches = {}\".format(test_data.__len__(), len(test_loader)))"
+      ],
+      "metadata": {
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:04.038449Z",
+          "iopub.execute_input": "2024-11-01T14:42:04.038760Z",
+          "iopub.status.idle": "2024-11-01T14:42:32.018195Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:04.038729Z",
+          "shell.execute_reply": "2024-11-01T14:42:32.017247Z"
+        },
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 332
+        },
+        "id": "AxJFu0yvwta4",
+        "outputId": "7d23fe11-8edc-4df7-f64a-bab51407a591"
+      },
+      "outputs": [
+        {
+          "output_type": "error",
+          "ename": "FileNotFoundError",
+          "evalue": "[Errno 2] No such file or directory: '/kaggle/working/11785-f24-hw3p2/train-clean-100/mfcc'",
+          "traceback": [
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mFileNotFoundError\u001b[0m                         Traceback (most recent call last)",
+            "\u001b[0;32m<ipython-input-16-f8a4f0275b0c>\u001b[0m in \u001b[0;36m<cell line: 8>\u001b[0;34m()\u001b[0m\n\u001b[1;32m      6\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      7\u001b[0m \u001b[0mroot\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;34m'/kaggle/working/11785-f24-hw3p2'\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 8\u001b[0;31m \u001b[0mtrain_data\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mAudioDataset\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mroot\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mroot\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mpartition\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;34m\"train-clean-100\"\u001b[0m\u001b[0;34m)\u001b[0m \u001b[0;31m#TODO\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      9\u001b[0m \u001b[0mval_data\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mAudioDataset\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mroot\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mroot\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mpartition\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;34m\"dev-clean\"\u001b[0m\u001b[0;34m)\u001b[0m  \u001b[0;31m# TODO : You can either use the same class with some modifications or make a new one :)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     10\u001b[0m \u001b[0mtest_data\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mAudioDatasetTest\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mroot\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mroot\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mpartition\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;34m\"test-clean\"\u001b[0m\u001b[0;34m)\u001b[0m \u001b[0;31m#TODO\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m<ipython-input-12-7d7df7a400b0>\u001b[0m in \u001b[0;36m__init__\u001b[0;34m(self, root, partition)\u001b[0m\n\u001b[1;32m     16\u001b[0m         \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mtranscript_dir\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mos\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mpath\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mjoin\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mroot\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mpartition\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m\"transcript\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;31m#TODO\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     17\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 18\u001b[0;31m         \u001b[0mmfcc_files\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0msorted\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mos\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mlistdir\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mmfcc_dir\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;31m#TODO\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m     19\u001b[0m         \u001b[0mtranscript_files\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0msorted\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mos\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mlistdir\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mtranscript_dir\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;31m#TODO\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     20\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;31mFileNotFoundError\u001b[0m: [Errno 2] No such file or directory: '/kaggle/working/11785-f24-hw3p2/train-clean-100/mfcc'"
+          ]
+        }
+      ],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# sanity check\n",
+        "for data in train_loader:\n",
+        "    x, y, lx, ly = data\n",
+        "    print(x.shape, y.shape, lx.shape, ly.shape)\n",
+        "    break"
+      ],
+      "metadata": {
+        "id": "cXMtwyviKaxK",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:32.019561Z",
+          "iopub.execute_input": "2024-11-01T14:42:32.019951Z",
+          "iopub.status.idle": "2024-11-01T14:42:32.042832Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:32.019905Z",
+          "shell.execute_reply": "2024-11-01T14:42:32.042005Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# NETWORK"
+      ],
+      "metadata": {
+        "id": "wSexxhdfMUzx"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Basic\n",
+        "\n",
+        "This is a basic block for understanding, you can skip this and move to pBLSTM one"
+      ],
+      "metadata": {
+        "id": "HLad4pChcuvX"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# torch.cuda.empty_cache()\n",
+        "\n",
+        "# class Network(nn.Module):\n",
+        "\n",
+        "#     def __init__(self):\n",
+        "\n",
+        "#         super(Network, self).__init__()\n",
+        "\n",
+        "#         # Adding some sort of embedding layer or feature extractor might help performance.\n",
+        "#         # self.embedding = ?\n",
+        "\n",
+        "#         # TODO : look up the documentation. You might need to pass some additional parameters.\n",
+        "#         self.lstm = nn.LSTM(input_size = __, hidden_size = 256, num_layers = 1)\n",
+        "\n",
+        "#         self.classification = nn.Sequential(\n",
+        "#             #TODO: Linear layer with in_features from the lstm module above and out_features = OUT_SIZE\n",
+        "#         )\n",
+        "\n",
+        "\n",
+        "#         self.logSoftmax = #TODO: Apply a log softmax here. Which dimension would apply it on ?\n",
+        "\n",
+        "#     def forward(self, x, lx):\n",
+        "#         #TODO\n",
+        "#         # The forward function takes 2 parameter inputs here. Why?\n",
+        "#         # Refer to the handout for hints\n",
+        "#         pass"
+      ],
+      "metadata": {
+        "id": "EQhvHr71GJfq",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:32.043978Z",
+          "iopub.execute_input": "2024-11-01T14:42:32.044287Z",
+          "iopub.status.idle": "2024-11-01T14:42:32.049195Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:32.044254Z",
+          "shell.execute_reply": "2024-11-01T14:42:32.048211Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Initialize Basic Network\n",
+        "(If trying out the basic Network)"
+      ],
+      "metadata": {
+        "id": "tUThsowyQdN7"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# torch.cuda.empty_cache()\n",
+        "\n",
+        "# model = Network().to(device)\n",
+        "# summary(model, x.to(device), lx) # x and lx come from the sanity check above :)"
+      ],
+      "metadata": {
+        "id": "CGoiXd70tb5z",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:32.050377Z",
+          "iopub.execute_input": "2024-11-01T14:42:32.050689Z",
+          "iopub.status.idle": "2024-11-01T14:42:32.062554Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:32.050657Z",
+          "shell.execute_reply": "2024-11-01T14:42:32.061671Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## ASR Network"
+      ],
+      "metadata": {
+        "id": "e-qb7wnAzCZl"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Pyramid Bi-LSTM (pBLSTM)"
+      ],
+      "metadata": {
+        "id": "PB6eh3gnMUzy"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# import torch\n",
+        "# import torch.nn as nn\n",
+        "# import torch.utils.data\n",
+        "# from torch.utils.data import DataLoader\n",
+        "# import numpy as np\n",
+        "# import os\n",
+        "\n",
+        "# # Utils for network\n",
+        "# torch.cuda.empty_cache()\n",
+        "\n",
+        "# class PermuteBlock(torch.nn.Module):\n",
+        "#     def forward(self, x):\n",
+        "#         return x.transpose(1, 2)"
+      ],
+      "metadata": {
+        "id": "qd4BEX_yMUzz",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:32.063686Z",
+          "iopub.execute_input": "2024-11-01T14:42:32.063982Z",
+          "iopub.status.idle": "2024-11-01T14:42:32.073297Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:32.063949Z",
+          "shell.execute_reply": "2024-11-01T14:42:32.072418Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "class PermuteBlock(nn.Module):\n",
+        "    def forward(self, x):\n",
+        "        if x.dim() == 2:\n",
+        "            x = x.unsqueeze(1)  # Adds a dimension at position 1\n",
+        "        elif x.dim() < 2:\n",
+        "            raise ValueError(f\"Expected tensor with at least 2 dimensions, but got {x.dim()} dimensions.\")\n",
+        "        return x.transpose(1, 2)\n"
+      ],
+      "metadata": {
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:32.074388Z",
+          "iopub.execute_input": "2024-11-01T14:42:32.074684Z",
+          "iopub.status.idle": "2024-11-01T14:42:32.085349Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:32.074646Z",
+          "shell.execute_reply": "2024-11-01T14:42:32.084378Z"
+        },
+        "id": "i9JSn-SJwta6"
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "class pBLSTM(torch.nn.Module):\n",
+        "\n",
+        "    '''\n",
+        "    Pyramidal BiLSTM\n",
+        "    Read the write up/paper and understand the concepts and then write your implementation here.\n",
+        "\n",
+        "    At each step,\n",
+        "    1. Pad your input if it is packed (Unpack it)\n",
+        "    2. Reduce the input length dimension by concatenating feature dimension\n",
+        "        (Tip: Write down the shapes and understand)\n",
+        "        (i) How should  you deal with odd/even length input?\n",
+        "        (ii) How should you deal with input length array (x_lens) after truncating the input?\n",
+        "    3. Pack your input\n",
+        "    4. Pass it into LSTM layer\n",
+        "\n",
+        "    To make our implementation modular, we pass 1 layer at a time.\n",
+        "    '''\n",
+        "\n",
+        "    def __init__(self, input_size, hidden_size):\n",
+        "        super(pBLSTM, self).__init__()\n",
+        "\n",
+        "        self.blstm = nn.LSTM(input_size=input_size*2, hidden_size=hidden_size, num_layers=1, bidirectional=True, batch_first=True)\n",
+        "        # TODO: Initialize a single layer bidirectional LSTM with the given input_size and hidden_size\n",
+        "\n",
+        "    def forward(self, x_packed): # x_packed is a PackedSequence\n",
+        "\n",
+        "        # TODO: Pad Packed Sequence\n",
+        "        x, x_lens = pad_packed_sequence(x_packed, batch_first=True)\n",
+        "\n",
+        "        # Call self.trunc_reshape() which downsamples the time steps of x and increases the feature dimensions as mentioned above\n",
+        "        x, x_lens = self.trunc_reshape(x, x_lens)\n",
+        "\n",
+        "        # self.trunc_reshape will return 2 outputs. What are they? Think about what quantites are changing.\n",
+        "        # TODO: Pack Padded Sequence. What output(s) would you get?\n",
+        "        x_packed = pack_padded_sequence(x, x_lens, batch_first=True, enforce_sorted=False)\n",
+        "\n",
+        "\n",
+        "        # TODO: Pass the sequence through bLSTM\n",
+        "        x_packed, _ = self.blstm(x_packed)\n",
+        "\n",
+        "        # What do you return?\n",
+        "\n",
+        "        return x_packed\n",
+        "\n",
+        "    def trunc_reshape(self, x, x_lens):\n",
+        "        # TODO: If you have odd number of timesteps, how can you handle it? (Hint: You can exclude them)\n",
+        "        # TODO: Reshape x. When reshaping x, you have to reduce number of timesteps by a downsampling factor while increasing number of features by the same factor\n",
+        "        # TODO: Reduce lengths by the same downsampling factor\n",
+        "\n",
+        "        batch_size, time_steps, features = x.shape\n",
+        "\n",
+        "\n",
+        "        # If there is an odd number of timesteps, exclude the last timestep\n",
+        "        if time_steps % 2 != 0:\n",
+        "            x = x[:, :-1, :]\n",
+        "            x_lens -= 1\n",
+        "\n",
+        "        # Reshape x\n",
+        "        x = x.view(batch_size, time_steps // 2, features * 2)\n",
+        "\n",
+        "        # Reduce lengths by half\n",
+        "        x_lens = x_lens // 2\n",
+        "\n",
+        "\n",
+        "        return x, x_lens\n",
+        "\n",
+        "pBLSTM(input_size=2, hidden_size=4)\n"
+      ],
+      "metadata": {
+        "id": "OmdyXI6KMUzz",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:32.086788Z",
+          "iopub.execute_input": "2024-11-01T14:42:32.087063Z",
+          "iopub.status.idle": "2024-11-01T14:42:32.102055Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:32.087033Z",
+          "shell.execute_reply": "2024-11-01T14:42:32.101099Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Encoder"
+      ],
+      "metadata": {
+        "id": "g3ZQ75OcMUz0"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from torch.autograd import Variable\n",
+        "class LockedDropout(nn.Module):\n",
+        "    def __init__(self, dropout):\n",
+        "        super().__init__()\n",
+        "        self.dropout = dropout\n",
+        "\n",
+        "    def forward(self, x):\n",
+        "        if not self.training or not self.dropout:\n",
+        "            return x\n",
+        "        x_unpacked, x_lens = pad_packed_sequence(x, batch_first= True)\n",
+        "        m = x.data.new(1, x_unpacked.size(1), x_unpacked.size(2)).bernoulli_(1 - self.dropout)\n",
+        "        mask = Variable(m, requires_grad= False) / (1 - self.dropout)\n",
+        "        mask = mask.expand_as(x_unpacked)\n",
+        "        out = mask * x_unpacked\n",
+        "        return pack_padded_sequence(out, lengths= x_lens, batch_first= True, enforce_sorted= False)"
+      ],
+      "metadata": {
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:32.103045Z",
+          "iopub.execute_input": "2024-11-01T14:42:32.103358Z",
+          "iopub.status.idle": "2024-11-01T14:42:32.110653Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:32.103327Z",
+          "shell.execute_reply": "2024-11-01T14:42:32.109827Z"
+        },
+        "id": "9Vcpllu-wta7"
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "class Encoder(torch.nn.Module):\n",
+        "    '''\n",
+        "    The Encoder takes utterances as inputs and returns latent feature representations\n",
+        "    '''\n",
+        "    def __init__(self, input_size, encoder_hidden_size):\n",
+        "        super(Encoder, self).__init__()\n",
+        "\n",
+        "\n",
+        "        self.embedding = nn.Sequential(\n",
+        "            PermuteBlock(),\n",
+        "            torch.nn.Conv1d(in_channels= 28, out_channels= 28, kernel_size= 7, padding= 3),\n",
+        "            torch.nn.GELU(),\n",
+        "            PermuteBlock()\n",
+        "        )\n",
+        "        self.pBLSTMs = torch.nn.Sequential(pBLSTM(encoder_hidden_size * 2, encoder_hidden_size),\n",
+        "            LockedDropout(0.25),\n",
+        "            pBLSTM(encoder_hidden_size * 2, encoder_hidden_size),\n",
+        "            LockedDropout(0.25)\n",
+        "            )\n",
+        "\n",
+        "        self.BLSTMs = torch.nn.LSTM(input_size=28,\n",
+        "                                    hidden_size= encoder_hidden_size,\n",
+        "                                    num_layers=3, batch_first= True,\n",
+        "                                    bidirectional= True,\n",
+        "                                    dropout= 0.25)\n",
+        "\n",
+        "\n",
+        "    def forward(self, x, x_lens):\n",
+        "        # Where are x and x_lens coming from? The dataloader\n",
+        "        #TODO: Call the embedding layer\n",
+        "        x = self.embedding(x)\n",
+        "        x = pack_padded_sequence(x, x_lens, batch_first= True, enforce_sorted= False)\n",
+        "        x_blstm, (h_n, c_n) = self.BLSTMs(x)\n",
+        "        x_pblstm = self.pBLSTMs(x_blstm)\n",
+        "        encoder_outputs, encoder_lens = pad_packed_sequence(x_pblstm, batch_first= True)\n",
+        "\n",
+        "        return encoder_outputs, encoder_lens\n",
+        "\n",
+        "Encoder(input_size=2, encoder_hidden_size=4)"
+      ],
+      "metadata": {
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:32.111656Z",
+          "iopub.execute_input": "2024-11-01T14:42:32.112256Z",
+          "iopub.status.idle": "2024-11-01T14:42:32.127471Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:32.112223Z",
+          "shell.execute_reply": "2024-11-01T14:42:32.126525Z"
+        },
+        "id": "gAXiQZeswta8"
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Decoder"
+      ],
+      "metadata": {
+        "id": "kg82HXa3MUz1"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "class Decoder(torch.nn.Module):\n",
+        "\n",
+        "    def __init__(self, embed_size, output_size= 41):\n",
+        "        super().__init__()\n",
+        "\n",
+        "        self.mlp = torch.nn.Sequential(\n",
+        "            PermuteBlock(),\n",
+        "            torch.nn.BatchNorm1d(embed_size*2),\n",
+        "            PermuteBlock(),nn.Linear(embed_size*2, 256),  # Example layer size, adjust as needed\n",
+        "            nn.ReLU(),\n",
+        "            nn.Linear(256, 128),        # Another layer\n",
+        "            nn.ReLU(),\n",
+        "            nn.Linear(128, output_size)  # Final layer outputting to the number of phoneme classes\n",
+        "            #TODO define your MLP arch. Refer HW1P2\n",
+        "            #Use Permute Block before and after BatchNorm1d() to match the size\n",
+        "        )\n",
+        "\n",
+        "        self.softmax = torch.nn.LogSoftmax(dim=2)\n",
+        "\n",
+        "    def forward(self, encoder_out):\n",
+        "        #TODO call your MLP\n",
+        "        out = self.mlp(encoder_out)\n",
+        "\n",
+        "        #TODO Think what should be the final output of the decoder for the classification\n",
+        "        out = self.softmax(out)\n",
+        "\n",
+        "        return out\n",
+        "\n",
+        "Decoder(2,4)"
+      ],
+      "metadata": {
+        "id": "PQIRxdNTMUz1",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:32.128458Z",
+          "iopub.execute_input": "2024-11-01T14:42:32.128750Z",
+          "iopub.status.idle": "2024-11-01T14:42:32.140636Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:32.128719Z",
+          "shell.execute_reply": "2024-11-01T14:42:32.139899Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# self.phonemes = PHONEMES\n",
+        "class ASRModel(torch.nn.Module):\n",
+        "\n",
+        "    def __init__(self, input_size, embed_size= 192, output_size= len(PHONEMES)):\n",
+        "        super().__init__()\n",
+        "\n",
+        "        self.augmentations  = torch.nn.Sequential(\n",
+        "        )\n",
+        "        self.encoder        = Encoder(input_size, embed_size) # TODO: Initialize Encoder\n",
+        "        self.decoder        = Decoder(embed_size=embed_size, output_size=output_size)\n",
+        " # TODO: Initialize Decoder\n",
+        "\n",
+        "\n",
+        "\n",
+        "    def forward(self, x, lengths_x):\n",
+        "\n",
+        "        if self.training:\n",
+        "            x = self.augmentations(x)\n",
+        "\n",
+        "        encoder_out, encoder_lens   = self.encoder(x, lengths_x)\n",
+        "        decoder_out                 = self.decoder(encoder_out)\n",
+        "\n",
+        "        return decoder_out, encoder_lens\n",
+        "ASRModel(28, 2,3)"
+      ],
+      "metadata": {
+        "id": "qmHf6pFiMUz1",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:32.141706Z",
+          "iopub.execute_input": "2024-11-01T14:42:32.141991Z",
+          "iopub.status.idle": "2024-11-01T14:42:32.155359Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:32.141961Z",
+          "shell.execute_reply": "2024-11-01T14:42:32.154396Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Initialize ASR Network"
+      ],
+      "metadata": {
+        "id": "EV7DMPDoMUz2"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# model.train()\n",
+        "model = ASRModel(\n",
+        "    input_size  = 28,\n",
+        "    embed_size  = 256,#TODO\n",
+        "    output_size = len(PHONEMES)\n",
+        ").to(device)\n",
+        "print(model)\n",
+        "# summary(model, x.to(device), lx)"
+      ],
+      "metadata": {
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:47:53.355662Z",
+          "iopub.execute_input": "2024-11-01T14:47:53.356547Z",
+          "iopub.status.idle": "2024-11-01T14:47:54.362156Z",
+          "shell.execute_reply.started": "2024-11-01T14:47:53.356503Z",
+          "shell.execute_reply": "2024-11-01T14:47:54.361166Z"
+        },
+        "id": "P_9nj535wta-"
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# import torch\n",
+        "# torch.backends.cudnn.deterministic = True\n",
+        "# torch.backends.cudnn.benchmark = False"
+      ],
+      "metadata": {
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:47:54.524702Z",
+          "iopub.execute_input": "2024-11-01T14:47:54.525269Z",
+          "iopub.status.idle": "2024-11-01T14:47:54.530381Z",
+          "shell.execute_reply.started": "2024-11-01T14:47:54.525230Z",
+          "shell.execute_reply": "2024-11-01T14:47:54.528699Z"
+        },
+        "id": "qIcTh0Hpwta-"
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Training Config\n",
+        "Initialize Loss Criterion, Optimizer, CTC Beam Decoder, Scheduler, Scaler (Mixed-Precision), etc."
+      ],
+      "metadata": {
+        "id": "IBwunYpyugFg"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#TODO\n",
+        "\n",
+        "criterion = nn.CTCLoss(blank= CMUdict.index('')) # Define CTC loss as the criterion. How would the losses be reduced?\n",
+        "# CTC Loss: https://pytorch.org/docs/stable/generated/torch.nn.CTCLoss.html\n",
+        "# Refer to the handout for hints\n",
+        "\n",
+        "optimizer =  torch.optim.AdamW(model.parameters(), lr=config['lr']) # What goes in here?\n",
+        "\n",
+        "# Declare the decoder. Use the CTC Beam Decoder to decode phonemes\n",
+        "# CTC Beam Decoder Doc: https://github.com/parlance/ctcdecode\n",
+        "decoder = CTCBeamDecoder(labels=LABELS,beam_width=5,num_processes= 2,log_probs_input=True) #TODO\n",
+        "\n",
+        "scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)\n",
+        "\n",
+        "# Mixed Precision, if you need it\n",
+        "scaler = torch.cuda.amp.GradScaler()"
+      ],
+      "metadata": {
+        "id": "iGoozH2nd6KB",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:47:56.459671Z",
+          "iopub.execute_input": "2024-11-01T14:47:56.460496Z",
+          "iopub.status.idle": "2024-11-01T14:47:56.467734Z",
+          "shell.execute_reply.started": "2024-11-01T14:47:56.460453Z",
+          "shell.execute_reply": "2024-11-01T14:47:56.466740Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Decode Prediction"
+      ],
+      "metadata": {
+        "id": "Jmc6_4eWL2Xp"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def decode_prediction(output, output_lens, decoder, PHONEME_MAP= LABELS):\n",
+        "\n",
+        "    # TODO: look at docs for CTC.decoder and find out what is returned here. Check the shape of output and expected shape in decode.\n",
+        "    # output = torch.transpose(output, 0, 1)\n",
+        "    output, _, _, out_seq_len = decoder.decode(output, seq_lens= output_lens) #lengths - list of lengths\n",
+        "\n",
+        "    pred_strings = []\n",
+        "\n",
+        "    for i in range(output_lens.shape[0]):\n",
+        "        #TODO: Create the prediction from the output of decoder.decode. Don't forget to map it using PHONEMES_MAP.\n",
+        "        logits=output[i][0][:out_seq_len[i][0]]\n",
+        "        try:\n",
+        "            pred_strings.append(''.join(\n",
+        "                [PHONEME_MAP[i] for i in logits]))\n",
+        "        except:\n",
+        "            print(logits)\n",
+        "\n",
+        "    return pred_strings\n",
+        "\n",
+        "def calculate_levenshtein(output, label, output_lens, label_lens, decoder, PHONEME_MAP= LABELS): # y - sequence of integers\n",
+        "\n",
+        "    dist            = 0\n",
+        "    batch_size      = label.shape[0]\n",
+        "\n",
+        "    pred_strings    = decode_prediction(output, output_lens, decoder, PHONEME_MAP)\n",
+        "    # print(pred_strings)\n",
+        "    for i in range(batch_size):\n",
+        "        # TODO: Get predicted string and label string for each element in the batch\n",
+        "        pred_string = pred_strings[i]\n",
+        "        label_string = ''.join(PHONEME_MAP[l] for l in label[i][:label_lens[i]])#TODO\n",
+        "        dist += Levenshtein.distance(pred_string, label_string)\n",
+        "\n",
+        "    dist /= batch_size # TODO: Uncomment this, but think about why we are doing this\n",
+        "    return dist"
+      ],
+      "metadata": {
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:48:07.577835Z",
+          "iopub.execute_input": "2024-11-01T14:48:07.578324Z",
+          "iopub.status.idle": "2024-11-01T14:48:07.590743Z",
+          "shell.execute_reply.started": "2024-11-01T14:48:07.578277Z",
+          "shell.execute_reply": "2024-11-01T14:48:07.589696Z"
+        },
+        "id": "hAnV-en6wta-"
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Test Implementation"
+      ],
+      "metadata": {
+        "id": "0Qk9iZud1LXT"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# test code to check shapes\n",
+        "\n",
+        "model.eval()\n",
+        "for i, data in enumerate(val_loader, 0):\n",
+        "    x, y, lx, ly = data\n",
+        "    x, y = x.to(device), y.to(device)\n",
+        "    h, lh = model(x, lx)\n",
+        "    print(h.shape)\n",
+        "    h = torch.permute(h, (1, 0, 2))\n",
+        "    print(h.shape, y.shape)\n",
+        "    loss = criterion(h, y, lh, ly)\n",
+        "    h = torch.permute(h, (1, 0, 2))\n",
+        "    print(loss)\n",
+        "\n",
+        "    print(calculate_levenshtein(h, y, lx, ly, decoder, LABELS))\n",
+        "\n",
+        "    break"
+      ],
+      "metadata": {
+        "id": "GnTLL-5gMBrY",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:48:09.586130Z",
+          "iopub.execute_input": "2024-11-01T14:48:09.587099Z",
+          "iopub.status.idle": "2024-11-01T14:48:12.152325Z",
+          "shell.execute_reply.started": "2024-11-01T14:48:09.587056Z",
+          "shell.execute_reply": "2024-11-01T14:48:12.151401Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#\n",
+        "WandB\n",
+        "\n",
+        "You will need to fetch your api key from wandb.ai"
+      ],
+      "metadata": {
+        "id": "rd5aNaLVoR_g"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import wandb\n",
+        "wandb.login(key=\"802a8921eca10835b2a0476bdd4789693d0d88b7\")"
+      ],
+      "metadata": {
+        "id": "PiDduMaDIARE",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:48:17.835730Z",
+          "iopub.execute_input": "2024-11-01T14:48:17.836766Z",
+          "iopub.status.idle": "2024-11-01T14:48:17.845322Z",
+          "shell.execute_reply.started": "2024-11-01T14:48:17.836710Z",
+          "shell.execute_reply": "2024-11-01T14:48:17.844370Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "run = wandb.init(\n",
+        "    name = \"early-submission\", ## Wandb creates random run names if you skip this field\n",
+        "    reinit = True, ### Allows reinitalizing runs when you re-run this cell\n",
+        "    # run_id = ### Insert specific run id here if you want to resume a previous run\n",
+        "    # resume = \"must\" ### You need this to resume previous runs, but comment out reinit = True when using this\n",
+        "    project = \"hw3p2-ablations\", ### Project should be created in your wandb account\n",
+        "    config = config ### Wandb Config for your run\n",
+        ")"
+      ],
+      "metadata": {
+        "id": "4s52yBOvICPZ",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:48:18.662838Z",
+          "iopub.execute_input": "2024-11-01T14:48:18.663707Z",
+          "iopub.status.idle": "2024-11-01T14:48:24.056661Z",
+          "shell.execute_reply.started": "2024-11-01T14:48:18.663669Z",
+          "shell.execute_reply": "2024-11-01T14:48:24.055819Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Train Functions"
+      ],
+      "metadata": {
+        "id": "6fLLj5KIMMOe"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from tqdm import tqdm\n",
+        "\n",
+        "def train_model(model, train_loader, criterion, optimizer):\n",
+        "\n",
+        "    model.train()\n",
+        "    batch_bar = tqdm(total=len(train_loader), dynamic_ncols=True, leave=False, position=0, desc='Train')\n",
+        "\n",
+        "    total_loss = 0\n",
+        "\n",
+        "    for i, data in enumerate(train_loader):\n",
+        "        optimizer.zero_grad()\n",
+        "\n",
+        "        x, y, lx, ly = data\n",
+        "        x, y = x.to(device), y.to(device)\n",
+        "\n",
+        "        with torch.cuda.amp.autocast():\n",
+        "            h, lh = model(x, lx)\n",
+        "            h = torch.permute(h, (1, 0, 2))\n",
+        "            loss = criterion(h, y, lh, ly)\n",
+        "\n",
+        "        total_loss += loss.item()\n",
+        "\n",
+        "        batch_bar.set_postfix(\n",
+        "            loss=\"{:.04f}\".format(float(total_loss / (i + 1))),\n",
+        "            lr=\"{:.06f}\".format(float(optimizer.param_groups[0]['lr'])))\n",
+        "\n",
+        "        batch_bar.update() # Update tqdm bar\n",
+        "\n",
+        "        # Another couple things you need for FP16.\n",
+        "        scaler.scale(loss).backward() # This is a replacement for loss.backward()\n",
+        "        scaler.step(optimizer) # This is a replacement for optimizer.step()\n",
+        "        scaler.update() # This is something added just for FP16\n",
+        "\n",
+        "        del x, y, lx, ly, h, lh, loss\n",
+        "        torch.cuda.empty_cache()\n",
+        "\n",
+        "    batch_bar.close() # You need this to close the tqdm bar\n",
+        "\n",
+        "    return total_loss / len(train_loader)\n",
+        "\n",
+        "\n",
+        "def validate_model(model, val_loader, decoder, phoneme_map= LABELS):\n",
+        "\n",
+        "    model.eval()\n",
+        "    batch_bar = tqdm(total=len(val_loader), dynamic_ncols=True, position=0, leave=False, desc='Val')\n",
+        "\n",
+        "    total_loss = 0\n",
+        "    vdist = 0\n",
+        "\n",
+        "    for i, data in enumerate(val_loader):\n",
+        "\n",
+        "        x, y, lx, ly = data\n",
+        "        x, y = x.to(device), y.to(device)\n",
+        "\n",
+        "        with torch.inference_mode():\n",
+        "            h, lh = model(x, lx)\n",
+        "            h = torch.permute(h, (1, 0, 2))\n",
+        "            loss = criterion(h, y, lh, ly)\n",
+        "\n",
+        "        total_loss += float(loss)\n",
+        "        vdist += calculate_levenshtein(torch.permute(h, (1, 0, 2)), y, lh, ly, decoder, phoneme_map)\n",
+        "\n",
+        "        batch_bar.set_postfix(loss=\"{:.04f}\".format(float(total_loss / (i + 1))), dist=\"{:.04f}\".format(float(vdist / (i + 1))))\n",
+        "\n",
+        "        batch_bar.update()\n",
+        "\n",
+        "        del x, y, lx, ly, h, lh, loss\n",
+        "        torch.cuda.empty_cache()\n",
+        "\n",
+        "    batch_bar.close()\n",
+        "    total_loss = total_loss/len(val_loader)\n",
+        "    val_dist = vdist/len(val_loader)\n",
+        "    return total_loss, val_dist"
+      ],
+      "metadata": {
+        "id": "ri87MAdhMUz5",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:48:24.077727Z",
+          "iopub.execute_input": "2024-11-01T14:48:24.077999Z",
+          "iopub.status.idle": "2024-11-01T14:48:24.093186Z",
+          "shell.execute_reply.started": "2024-11-01T14:48:24.077967Z",
+          "shell.execute_reply": "2024-11-01T14:48:24.092173Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Training Setup"
+      ],
+      "metadata": {
+        "id": "qpYExu4vT4_g"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def save_model(model, optimizer, scheduler, metric, epoch, path):\n",
+        "    torch.save(\n",
+        "        {'model_state_dict'         : model.state_dict(),\n",
+        "         'optimizer_state_dict'     : optimizer.state_dict(),\n",
+        "         'scheduler_state_dict'     : scheduler.state_dict(),\n",
+        "         metric[0]                  : metric[1],\n",
+        "         'epoch'                    : epoch},\n",
+        "         path\n",
+        "    )\n",
+        "\n",
+        "def load_model(path, model, metric= 'valid_acc', optimizer= None, scheduler= None):\n",
+        "\n",
+        "    checkpoint = torch.load(path)\n",
+        "    model.load_state_dict(checkpoint['model_state_dict'])\n",
+        "\n",
+        "    if optimizer != None:\n",
+        "        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])\n",
+        "    if scheduler != None:\n",
+        "        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])\n",
+        "\n",
+        "    epoch   = checkpoint['epoch']\n",
+        "    metric  = checkpoint[metric]\n",
+        "\n",
+        "    return [model, optimizer, scheduler, epoch, metric]"
+      ],
+      "metadata": {
+        "id": "husa5_EYMUz6",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:48:24.115343Z",
+          "iopub.execute_input": "2024-11-01T14:48:24.115599Z",
+          "iopub.status.idle": "2024-11-01T14:48:24.122885Z",
+          "shell.execute_reply.started": "2024-11-01T14:48:24.115569Z",
+          "shell.execute_reply": "2024-11-01T14:48:24.121935Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# This is for checkpointing, if you're doing it over multiple sessions\n",
+        "\n",
+        "last_epoch_completed = 0\n",
+        "start = last_epoch_completed\n",
+        "end = config[\"epochs\"]\n",
+        "best_lev_dist = float(\"inf\") # if you're restarting from some checkpoint, use what you saw there.\n",
+        "epoch_model_path = '/kaggle/working/epoch_model.pth' #TODO set the model path( Optional, you can just store best one. Make sure to make the changes below )\n",
+        "best_model_path = '/kaggle/working/best_model.pth' #TODO set best model path."
+      ],
+      "metadata": {
+        "id": "tExvyl1BIdMC",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:48:24.226001Z",
+          "iopub.execute_input": "2024-11-01T14:48:24.226317Z",
+          "iopub.status.idle": "2024-11-01T14:48:24.231011Z",
+          "shell.execute_reply.started": "2024-11-01T14:48:24.226283Z",
+          "shell.execute_reply": "2024-11-01T14:48:24.230046Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "torch.cuda.empty_cache()\n",
+        "gc.collect()\n",
+        "\n",
+        "#TODO: Please complete the training loop\n",
+        "\n",
+        "for epoch in range(0, config['epochs']):\n",
+        "\n",
+        "    print(\"\\nEpoch: {}/{}\".format(epoch+1, config['epochs']))\n",
+        "\n",
+        "    curr_lr = float(optimizer.param_groups[0]['lr']) #TODO\n",
+        "\n",
+        "    train_loss              = train_model(model, train_loader, criterion, optimizer) #TODO\n",
+        "    valid_loss, valid_dist  = validate_model(model, val_loader, decoder, phoneme_map= LABELS) #TODO\n",
+        "    scheduler.step(valid_dist)\n",
+        "\n",
+        "    print(\"\\tTrain Loss {:.04f}\\t Learning Rate {:.07f}\".format(train_loss, curr_lr))\n",
+        "    print(\"\\tVal Dist {:.04f}%\\t Val Loss {:.04f}\".format(valid_dist, valid_loss))\n",
+        "\n",
+        "\n",
+        "    wandb.log({\n",
+        "        'train_loss': train_loss,\n",
+        "        'valid_dist': valid_dist,\n",
+        "        'valid_loss': valid_loss,\n",
+        "        'lr'        : curr_lr\n",
+        "    })\n",
+        "\n",
+        "    save_model(model, optimizer, scheduler, ['valid_dist', valid_dist], epoch, epoch_model_path)\n",
+        "    wandb.save(epoch_model_path)\n",
+        "    print(\"Saved epoch model\")\n",
+        "\n",
+        "    if valid_dist <= best_lev_dist:\n",
+        "        best_lev_dist = valid_dist\n",
+        "        save_model(model, optimizer, scheduler, ['valid_dist', valid_dist], epoch, best_model_path)\n",
+        "        wandb.save(best_model_path)\n",
+        "        print(\"Saved best model\")\n",
+        "      # You may find it interesting to exlplore Wandb Artifcats to version your models\n",
+        "run.finish()"
+      ],
+      "metadata": {
+        "id": "JR43E28rM9Ak",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:48:24.771981Z",
+          "iopub.execute_input": "2024-11-01T14:48:24.772310Z",
+          "iopub.status.idle": "2024-11-01T14:56:43.246581Z",
+          "shell.execute_reply.started": "2024-11-01T14:48:24.772275Z",
+          "shell.execute_reply": "2024-11-01T14:56:43.245848Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Generate Predictions and Submit to Kaggle"
+      ],
+      "metadata": {
+        "id": "M2H4EEj-sD32"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#TODO: Make predictions\n",
+        "\n",
+        "# Follow the steps below:\n",
+        "# 1. Create a new object for CTCBeamDecoder with larger (why?) number of beams\n",
+        "# 2. Get prediction string by decoding the results of the beam decoder\n",
+        "\n",
+        "TEST_BEAM_WIDTH = 10 #TODO\n",
+        "\n",
+        "test_decoder    = CTCBeamDecoder(labels=LABELS, beam_width=TEST_BEAM_WIDTH, num_processes= 2, log_probs_input=True) #TODO\n",
+        "results = []\n",
+        "\n",
+        "model.eval()\n",
+        "print(\"Testing\")\n",
+        "for data in tqdm(test_loader):\n",
+        "\n",
+        "    x, lx   = data\n",
+        "    x       = x.to(device)\n",
+        "\n",
+        "    with torch.no_grad():\n",
+        "        h, lh = model(x, lx)\n",
+        "        h = torch.permute(h, (1, 0, 2))\n",
+        "    prediction_string= decode_prediction(h, lh, test_decoder)# TODO call decode_prediction\n",
+        "    #TODO save the output in results array.\n",
+        "    results.append(prediction_string)\n",
+        "\n",
+        "    del x, lx, h, lh\n",
+        "    torch.cuda.empty_cache()"
+      ],
+      "metadata": {
+        "id": "2moYJhTWsOG-",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T15:21:23.484084Z",
+          "iopub.execute_input": "2024-11-01T15:21:23.484633Z",
+          "iopub.status.idle": "2024-11-01T15:21:24.103995Z",
+          "shell.execute_reply.started": "2024-11-01T15:21:23.484545Z",
+          "shell.execute_reply": "2024-11-01T15:21:24.102287Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "data_dir = f\"{root}/test-clean/random_submission.csv\"\n",
+        "df = pd.read_csv(data_dir)\n",
+        "df.label = results\n",
+        "df.to_csv('submission.csv', index = False)"
+      ],
+      "metadata": {
+        "id": "d70dvu_lsMlv",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:56:43.658025Z",
+          "iopub.status.idle": "2024-11-01T14:56:43.658407Z",
+          "shell.execute_reply.started": "2024-11-01T14:56:43.658227Z",
+          "shell.execute_reply": "2024-11-01T14:56:43.658246Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!kaggle competitions submit -c hw3p2-785-f24 -f submission.csv -m \"I made it!\"\n"
+      ],
+      "metadata": {
+        "id": "m1sZmEIs4yIz",
+        "trusted": true,
+        "execution": {
+          "iopub.status.busy": "2024-11-01T14:42:32.753850Z",
+          "iopub.status.idle": "2024-11-01T14:42:32.754233Z",
+          "shell.execute_reply.started": "2024-11-01T14:42:32.754026Z",
+          "shell.execute_reply": "2024-11-01T14:42:32.754044Z"
+        }
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "trusted": true,
+        "id": "bTdN0I3ewtbE"
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "trusted": true,
+        "id": "OU2K8CkawtbE"
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "trusted": true,
+        "id": "CiOn_cHAwtbE"
+      },
+      "outputs": [],
+      "execution_count": null
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "trusted": true,
+        "id": "ZzR9lxFWwtbE"
+      },
+      "outputs": [],
+      "execution_count": null
+    }
+  ]
+}
